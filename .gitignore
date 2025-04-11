@@ -32,3 +32,7 @@ telegram-fal-bot.exe
 telegram-fal-bot
 
 test.toml
+*.db
+
+# Database file
+botdata.db

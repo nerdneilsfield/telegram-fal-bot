@@ -12,15 +12,17 @@ import (
 	st "github.com/nerdneilsfield/telegram-fal-bot/internal/storage"
 	fapi "github.com/nerdneilsfield/telegram-fal-bot/pkg/falapi"
 	"go.uber.org/zap"
+	"gorm.io/gorm"
 
 	"golang.org/x/crypto/blake2b"
 )
 
 type LoraConfig struct {
-	ID     string
-	Name   string
-	URL    string
-	Weight float64
+	ID          string // Unique ID generated from Name, URL, Weight
+	Name        string
+	URL         string
+	Weight      float64
+	AllowGroups []string // New: List of group names allowed to access (copied from cfg.LoraConfig)
 }
 
 // BotDeps 包含 Bot 需要的所有依赖
@@ -28,6 +30,7 @@ type BotDeps struct {
 	Bot            *tgbotapi.BotAPI
 	FalClient      *fapi.Client
 	Config         *cfg.Config
+	DB             *gorm.DB               // 新增：数据库连接
 	StateManager   *StateManager          // Optional
 	BalanceManager *st.GormBalanceManager // Optional
 	Version        string
@@ -80,13 +83,14 @@ func GenerateIDWithBlake2b(s1, s2 string, f float64) (string, error) {
 func GenerateLoraConfig(loraCfg cfg.LoraConfig) (LoraConfig, error) {
 	id, err := GenerateIDWithBlake2b(loraCfg.Name, loraCfg.URL, loraCfg.Weight)
 	if err != nil {
-		return LoraConfig{}, fmt.Errorf("生成 ID 失败: %w", err)
+		return LoraConfig{}, fmt.Errorf("生成 ID 失败 for %s: %w", loraCfg.Name, err)
 	}
 
 	return LoraConfig{
-		ID:     id,
-		Name:   loraCfg.Name,
-		URL:    loraCfg.URL,
-		Weight: loraCfg.Weight,
+		ID:          id,
+		Name:        loraCfg.Name,
+		URL:         loraCfg.URL,
+		Weight:      loraCfg.Weight,
+		AllowGroups: loraCfg.AllowGroups, // Copy AllowGroups from config
 	}, nil
 }

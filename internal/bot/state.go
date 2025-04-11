@@ -7,10 +7,12 @@ import (
 
 type UserState struct {
 	UserID          int64
-	Action          string   // e.g., "awaiting_lora_selection", "awaiting_caption_edit"
-	OriginalCaption string   // 当等待编辑/确认 caption 时
-	ImageFileURL    string   // 当处理图片时
-	SelectedLoras   []string // 用户已选择的 LoRA ID
+	ChatID          int64    // 新增：记录交互发生的聊天 ID
+	MessageID       int      // 新增：记录触发状态的相关消息 ID (用于编辑)
+	Action          string   // e.g., "awaiting_lora_selection", "awaiting_caption_edit", "awaiting_config_infsteps"
+	OriginalCaption string   // 当等待编辑/确认 caption 时，或作为文本输入的 prompt
+	ImageFileURL    string   // 当处理图片时 (可选)
+	SelectedLoras   []string // 用户已选择的 LoRA Name (注意: 不是 ID)
 	LastUpdated     time.Time
 }
 

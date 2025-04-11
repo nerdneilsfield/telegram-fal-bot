@@ -18,78 +18,85 @@ import (
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"go.uber.org/zap"
+	"gorm.io/gorm" // Add gorm import if not already present
 )
 
 func StartBot(config *cfg.Config, version string, buildDate string) {
-	// Initialize logger as local variable
+	// Initialize logger
 	logger, err := loggerPkg.InitLogger(config.LogConfig.Level, config.LogConfig.Format, config.LogConfig.File)
 	if err != nil {
-		// Fallback or handle error if logger isn't global
 		panic(fmt.Sprintf("Logger not initialized: %v", err))
 	}
 
+	// Initialize Database connection early
+	var db *gorm.DB
+	db, err = storage.InitDB(config.DBPath)
+	if err != nil {
+		logger.Fatal("Failed to initialize database", zap.Error(err), zap.String("dbPath", config.DBPath))
+	}
+	logger.Info("Database connection established and migrations run.")
+
+	// Initialize Bot API
 	bot, err := tgbotapi.NewBotAPIWithAPIEndpoint(config.BotToken, config.TelegramAPIURL)
 	if err != nil {
 		logger.Fatal("Failed to create bot API", zap.Error(err))
 	}
-	bot.Debug = false // Set to true for verbose API logging
+	bot.Debug = false
 	logger.Info("Authorized on account", zap.String("username", bot.Self.UserName))
 
-	// 添加设置命令的代码
+	// Set bot commands
 	commands := []tgbotapi.BotCommand{
 		{Command: "start", Description: "开始使用 Bot"},
+		{Command: "help", Description: "获取帮助信息"},
 		{Command: "balance", Description: "查询余额"},
 		{Command: "loras", Description: "查看可用风格"},
 		{Command: "version", Description: "查看版本信息"},
-		// 你可以在这里添加更多命令，例如 /help
+		{Command: "myconfig", Description: "查看/设置我的生成参数"},
+		{Command: "set", Description: "(管理员) 管理用户组和Lora权限"},
 	}
 	commandsConfig := tgbotapi.NewSetMyCommands(commands...)
 	if _, err := bot.Request(commandsConfig); err != nil {
 		logger.Error("Failed to set bot commands", zap.Error(err))
-		// 通常不需要因为设置命令失败而停止 Bot，记录错误即可
 	} else {
 		logger.Info("Successfully set bot commands")
 	}
-	// 结束设置命令的代码
 
-	// 初始化依赖
+	// Initialize dependencies
 	falClient := fapi.NewClient(config)
 	authorizer := auth.NewAuthorizer(config.Auth.AuthorizedUserIDs, config.Admins.AdminUserIDs)
 	stateManager := NewStateManager()
 	var balanceManager *storage.GormBalanceManager
-	if config.Balance.CostPerGeneration > 0 { // 仅当配置了成本时启用余额管理
-		db, err := storage.InitDB(config.DBPath)
-		if err != nil {
-			logger.Fatal("Failed to create database or open database", zap.Error(err))
-		}
+	if config.Balance.CostPerGeneration > 0 { // Enable balance manager only if cost is configured
+		// Database is already initialized above
 		balanceManager = storage.NewGormBalanceManager(db, config.Balance.InitialBalance, config.Balance.CostPerGeneration)
 		logger.Info("Balance management enabled", zap.Float64("initial", config.Balance.InitialBalance), zap.Float64("cost", config.Balance.CostPerGeneration))
 	}
 
-	// 初始化 lora 配置
+	// Initialize LoRA configurations (assuming GenerateLoraConfig is defined elsewhere)
 	baseLoraList := []LoraConfig{}
 	for _, lora := range config.BaseLoRAs {
 		loraConfig, err := GenerateLoraConfig(lora)
 		if err != nil {
-			logger.Fatal("Failed to generate lora config", zap.Error(err))
+			logger.Fatal("Failed to generate base lora config", zap.Error(err), zap.String("name", lora.Name))
 		}
 		baseLoraList = append(baseLoraList, loraConfig)
 	}
 
-	// 初始化 lora 配置
 	loras := []LoraConfig{}
 	for _, lora := range config.LoRAs {
 		loraConfig, err := GenerateLoraConfig(lora)
 		if err != nil {
-			logger.Fatal("Failed to generate lora config", zap.Error(err))
+			logger.Fatal("Failed to generate lora config", zap.Error(err), zap.String("name", lora.Name))
 		}
 		loras = append(loras, loraConfig)
 	}
 
+	// Create BotDeps with the DB connection
 	deps := BotDeps{
 		Bot:            bot,
 		FalClient:      falClient,
 		Config:         config,
+		DB:             db, // Pass the initialized DB connection
 		StateManager:   stateManager,
 		BalanceManager: balanceManager,
 		Authorizer:     authorizer,
@@ -97,27 +104,22 @@ func StartBot(config *cfg.Config, version string, buildDate string) {
 		LoRA:           loras,
 		Version:        version,
 		BuildDate:      buildDate,
-		Logger:         logger, // Assign initialized logger to deps
+		Logger:         logger,
 	}
 
-	u := tgbotapi.NewUpdate(0) // 0 means no offset, get all pending updates
+	// Setup update channel and signal handling
+	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 120
-
-	// 使用 context 控制 goroutine 生命周期
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-
 	updates := bot.GetUpdatesChan(u)
-
-	// 优雅地处理中断信号
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
 	go func() {
-		<-sigs // 等待中断信号
+		<-sigs
 		logger.Info("Received interrupt signal, shutting down...")
-		cancel() // 通知 update loop 停止
-		// 可以添加额外的清理逻辑
+		cancel()
 	}()
 
 	logger.Info("Starting update processing loop...")
@@ -207,13 +209,14 @@ func StartBot(config *cfg.Config, version string, buildDate string) {
 						}
 					}
 				}()
-				HandleUpdate(u, deps)
+				HandleUpdate(u, deps) // Pass deps containing DB connection
 			}(update)
 
 		case <-ctx.Done():
 			logger.Info("Update processing loop stopped.")
-			// (可选) 等待所有处理中的 goroutine 完成
-			time.Sleep(10 * time.Second)
+			// Optional graceful shutdown delay
+			time.Sleep(5 * time.Second) // Reduced delay
+			logger.Info("Exiting.")
 			return
 		}
 	}

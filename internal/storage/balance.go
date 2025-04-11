@@ -29,6 +29,11 @@ func NewGormBalanceManager(db *gorm.DB, initialBalance, costPerGeneration float6
 	}
 }
 
+// GetCost 返回单次生成的成本
+func (bm *GormBalanceManager) GetCost() float64 {
+	return bm.cost
+}
+
 // GetBalance 获取指定用户的余额，如果用户不存在则返回初始余额
 func (bm *GormBalanceManager) GetBalance(userID int64) float64 {
 	var userBalance UserBalance

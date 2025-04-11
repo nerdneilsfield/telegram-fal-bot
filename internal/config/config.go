@@ -14,13 +14,14 @@ type Config struct {
 	TelegramAPIURL            string             `toml:"telegramAPIURL"`
 	DBPath                    string             `toml:"dbPath"`
 	BaseLoRAs                 []LoraConfig       `toml:"baseLoRAs"`
+	LoRAs                     []LoraConfig       `toml:"loras"`
 	LogConfig                 LogConfig          `toml:"logConfig"`
 	APIEndpoints              APIEndpointsConfig `toml:"apiEndpoints"`
 	Auth                      AuthConfig         `toml:"auth"`
 	Admins                    AdminConfig        `toml:"admins"`
-	LoRAs                     []LoraConfig       `toml:"loras"`
 	Balance                   BalanceConfig      `toml:"balance"`
 	DefaultGenerationSettings GenerationConfig   `toml:"defaultGenerationSettings"`
+	UserGroups                []UserGroup        `toml:"userGroups"`
 }
 
 type LogConfig struct {
@@ -43,12 +44,13 @@ type AdminConfig struct {
 }
 
 type LoraConfig struct {
-	Name   string  `toml:"name"`
-	URL    string  `toml:"url"`
-	Weight float64 `toml:"weight"`
+	Name        string   `toml:"name"`
+	URL         string   `toml:"url"`
+	Weight      float64  `toml:"weight"`
+	AllowGroups []string `toml:"allowGroups,omitempty"`
 }
 
-type BalanceConfig struct { // (可选)
+type BalanceConfig struct {
 	InitialBalance    float64 `toml:"initialBalance"`
 	CostPerGeneration float64 `toml:"costPerGeneration"`
 }
@@ -57,6 +59,11 @@ type GenerationConfig struct {
 	ImageSize         string  `toml:"imageSize" json:"image_size"`
 	NumInferenceSteps int     `toml:"numInferenceSteps" json:"num_inference_steps"`
 	GuidanceScale     float64 `toml:"guidanceScale" json:"guidance_scale"`
+}
+
+type UserGroup struct {
+	Name    string  `toml:"name"`
+	UserIDs []int64 `toml:"userIDs"`
 }
 
 func LoadConfig(path string) (*Config, error) {
@@ -91,14 +98,21 @@ func PrintConfig(cfg *Config) {
 	fmt.Printf("\tFalAIKey: %s\n", MaskedPrint(cfg.FalAIKey))
 	fmt.Printf("\tTelegramAPIURL: %s\n", cfg.TelegramAPIURL)
 	fmt.Printf("\tDBPath: %s\n", cfg.DBPath)
-	fmt.Printf("\tBaseLoRAs: %v\n", cfg.BaseLoRAs)
+	fmt.Printf("\tBaseLoRAs:\n")
+	for _, lora := range cfg.BaseLoRAs {
+		fmt.Printf("\t\t- Name: %s, URL: %s, Weight: %.2f, AllowGroups: %v\n", lora.Name, lora.URL, lora.Weight, lora.AllowGroups)
+	}
+	fmt.Printf("\tLoRAs:\n")
+	for _, lora := range cfg.LoRAs {
+		fmt.Printf("\t\t- Name: %s, URL: %s, Weight: %.2f, AllowGroups: %v\n", lora.Name, lora.URL, lora.Weight, lora.AllowGroups)
+	}
 	fmt.Printf("\tLogConfig: %v\n", cfg.LogConfig)
 	fmt.Printf("\tAPIEndpoints: %v\n", cfg.APIEndpoints)
 	fmt.Printf("\tAuth: %v\n", cfg.Auth)
 	fmt.Printf("\tAdmins: %v\n", cfg.Admins)
-	fmt.Printf("\tLoRAs: %v\n", cfg.LoRAs)
 	fmt.Printf("\tBalance: %v\n", cfg.Balance)
 	fmt.Printf("\tDefaultGenerationSettings: %v\n", cfg.DefaultGenerationSettings)
+	fmt.Printf("\tUserGroups: %v\n", cfg.UserGroups)
 	fmt.Println("--------------------------------")
 	fmt.Println()
 }
@@ -126,8 +140,8 @@ func ValidateConfig(cfg *Config) error {
 	if len(cfg.Auth.AuthorizedUserIDs) == 0 {
 		return fmt.Errorf("authorizedUserIDs is required")
 	}
-	if len(cfg.LoRAs) == 0 {
-		return fmt.Errorf("loras is required")
+	if len(cfg.LoRAs) == 0 && len(cfg.BaseLoRAs) == 0 {
+		return fmt.Errorf("at least one LoRA or BaseLoRA must be defined")
 	}
 	if cfg.Balance.InitialBalance <= 0 {
 		return fmt.Errorf("initialBalance must be greater than 0")
@@ -156,5 +170,48 @@ func ValidateConfig(cfg *Config) error {
 	if cfg.DefaultGenerationSettings.GuidanceScale <= 0 || cfg.DefaultGenerationSettings.GuidanceScale > 15 {
 		return fmt.Errorf("guidanceScale must be greater than 0 and less than 15")
 	}
+
+	groupNames := make(map[string]struct{})
+	for _, group := range cfg.UserGroups {
+		if group.Name == "" {
+			return fmt.Errorf("user group name cannot be empty")
+		}
+		if _, exists := groupNames[group.Name]; exists {
+			return fmt.Errorf("duplicate user group name found: %s", group.Name)
+		}
+		groupNames[group.Name] = struct{}{}
+	}
+
+	validateLoraList := func(loras []LoraConfig, listName string) error {
+		loraNames := make(map[string]struct{})
+		for _, lora := range loras {
+			if lora.Name == "" {
+				return fmt.Errorf("lora name in %s cannot be empty", listName)
+			}
+			if _, exists := loraNames[lora.Name]; exists {
+				return fmt.Errorf("duplicate lora name found in %s: %s", listName, lora.Name)
+			}
+			loraNames[lora.Name] = struct{}{}
+
+			if lora.URL == "" || !ValidateURL(lora.URL) {
+				return fmt.Errorf("lora '%s' in %s has an invalid URL: %s", lora.Name, listName, lora.URL)
+			}
+
+			for _, allowedGroup := range lora.AllowGroups {
+				if _, ok := groupNames[allowedGroup]; !ok {
+					return fmt.Errorf("group '%s' in allowGroups for lora '%s' (list %s) does not exist in userGroups definition", allowedGroup, lora.Name, listName)
+				}
+			}
+		}
+		return nil
+	}
+
+	if err := validateLoraList(cfg.LoRAs, "loras"); err != nil {
+		return err
+	}
+	if err := validateLoraList(cfg.BaseLoRAs, "baseLoRAs"); err != nil {
+		return err
+	}
+
 	return nil
 }

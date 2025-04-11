@@ -35,7 +35,7 @@ func InitDB(dbPath string) (*gorm.DB, error) {
 
 	// 运行自动迁移
 	zap.L().Info("Running database migrations...")
-	err = db.AutoMigrate(&UserBalance{}) // 传入你的模型
+	err = db.AutoMigrate(&UserBalance{}, &UserGenerationConfig{}) // 添加 UserGenerationConfig
 	if err != nil {
 		return nil, fmt.Errorf("failed to migrate database: %w", err)
 	}
