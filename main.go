@@ -5,8 +5,8 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/nerdneilsfield/go-template/cmd"
 	loggerPkg "github.com/nerdneilsfield/shlogin/pkg/logger"
+	"github.com/nerdneilsfield/telegram-fal-bot/cmd"
 	"go.uber.org/zap"
 )
 

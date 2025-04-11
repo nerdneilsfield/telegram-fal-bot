@@ -10,15 +10,15 @@ import (
 func newVersionCmd(version string, buildTime string, gitCommit string) *cobra.Command {
 	return &cobra.Command{
 		Use:          "version",
-		Short:        "go-template version",
+		Short:        "telegram-fal-bot version",
 		Args:         cobra.NoArgs,
 		SilenceUsage: true,
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Println("go-template")
-			fmt.Println("A template for go projects.")
+			fmt.Println("telegram-fal-bot")
+			fmt.Println("A telegram bot for fal.ai.")
 			fmt.Println("Author: dengqi935@gmail.com")
-			fmt.Println("Github: https://github.com/nerdneilsfield/go-template")
-			fmt.Fprintf(cmd.OutOrStdout(), "go-template: %s\n", version)
+			fmt.Println("Github: https://github.com/nerdneilsfield/telegram-fal-bot")
+			fmt.Fprintf(cmd.OutOrStdout(), "telegram-fal-bot: %s\n", version)
 			fmt.Fprintf(cmd.OutOrStdout(), "buildTime: %s\n", buildTime)
 			fmt.Fprintf(cmd.OutOrStdout(), "gitCommit: %s\n", gitCommit)
 			fmt.Fprintf(cmd.OutOrStdout(), "goVersion: %s\n", runtime.Version())

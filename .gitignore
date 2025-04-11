@@ -28,4 +28,7 @@ go.work.sum
 .vscode/
 .idea/
 dist/
-go-template
+telegram-fal-bot.exe
+telegram-fal-bot
+
+test.toml

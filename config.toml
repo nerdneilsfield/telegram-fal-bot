@@ -1,0 +1,83 @@
+# Required: Telegram Bot Token obtained from BotFather
+botToken = "YOUR_TELEGRAM_BOT_TOKEN_HERE"
+
+# Required: Fal.ai API Key (get from https://fal.ai/)
+falAIKey = "YOUR_FAL_AI_KEY_HERE"
+
+# Optional: Custom Telegram API endpoint. If unsure, use the default.
+# The "%s" are placeholders for the bot token and method name, respectively.
+# Example: "https://api.telegram.org/bot%s/%s"
+telegramAPIURL = "https://api.telegram.org/bot%s/%s"
+
+# Required: Path for the SQLite database file to store user balances, etc.
+dbPath = "botdata.db"
+
+# --- Log Configuration ---
+[logConfig]
+  # Logging level: "debug", "info", "warn", "error"
+  level = "debug"
+  # Logging format: "json" or "text"
+  format = "json"
+  # Optional: Path to log file. If empty, logs to standard output (console).
+  file = "" # Example: "bot.log"
+
+# --- Fal.ai API Endpoints ---
+# Replace with the actual URLs provided by Fal.ai for the models you are using.
+[apiEndpoints]
+  # Full URL for the Florence-2 image captioning model endpoint
+  florenceCaption = "https://fal.run/fal-ai/..." # e.g., https://fal.run/fal-ai/florence-2-base-ft
+  # Full URL for the Flux LoRA image generation model endpoint
+  fluxLora = "https://fal.run/fal-ai/..."      # e.g., https://fal.run/fal-ai/flux-lora-inference
+
+# --- Authorization ---
+[auth]
+  # List of Telegram User IDs who are authorized to use this bot.
+  # Get user IDs from bots like @userinfobot on Telegram.
+  authorizedUserIDs = [123456789, 987654321] # Replace with actual user IDs
+
+# --- Admins ---
+[admins]
+  # List of Telegram User IDs who are administrators.
+  # Admins receive detailed error messages (panic tracebacks).
+  adminUserIDs = [123456789] # Replace with actual admin user IDs
+
+# --- Balance System (Optional but Recommended) ---
+[balance]
+  # Initial balance credited to newly authorized users.
+  initialBalance = 50.0
+  # Cost deducted for each successful image generation task (per LoRA).
+  # Set to 0 or negative to disable balance checking/deduction if needed,
+  # but the BalanceManager initialization might still require the DB.
+  costPerGeneration = 1.0
+
+# --- Default Generation Settings ---
+[defaultGenerationSettings]
+  imageSize = "portrait_16_9"
+  numInferenceSteps = 25
+  guidanceScale = 7.5
+
+# --- Base LoRAs (Optional - Applied implicitly if logic supports it) ---
+# Define LoRAs that might be applied by default or used internally.
+[[baseLoRAs]]
+  name = "Default Flux Enhancer"
+  url = "fal-ai/..." # URL or identifier for the base LoRA on Fal.ai
+  weight = 0.5
+
+# --- Selectable LoRA Styles ---
+# Define the LoRA styles users can choose from. Add one block for each style.
+[[loras]]
+  name = "Anime Style V2" # User-friendly name displayed in the bot
+  url = "fal-ai/..."      # URL or identifier for this specific LoRA on Fal.ai
+  weight = 0.8            # Default weight for this LoRA (if applicable)
+
+[[loras]]
+  name = "Cinematic Look"
+  url = "fal-ai/..."
+  weight = 0.75
+
+[[loras]]
+  name = "Pixel Art"
+  url = "fal-ai/..."
+  weight = 0.9
+
+# Add more [[LoRAs]] sections for other styles you want to offer.
