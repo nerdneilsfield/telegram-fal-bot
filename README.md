@@ -253,4 +253,4 @@ This project is licensed under the MIT License.
 
 ## Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=用户名/仓库名&type=Date)](https://star-history.com/#用户名/仓库名&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=nerdneilsfield/telegram-fal-bot/&type=Date)](https://star-history.com/nerdneilsfield/telegram-fal-bot&Date)
