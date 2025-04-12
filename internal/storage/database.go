@@ -1,6 +1,7 @@
 package storage
 
 import (
+	// "database/sql" // No longer needed directly here
 	"fmt"
 	// 替换为你的 logger 包路径
 	"log"  // Standard log for GORM logger config
@@ -8,9 +9,10 @@ import (
 	"time" // For GORM logger config
 
 	"go.uber.org/zap"
-	"gorm.io/driver/sqlite"
+	"gorm.io/driver/sqlite" // Keep the GORM SQLite driver import
 	"gorm.io/gorm"
 	gormlogger "gorm.io/gorm/logger" // Import GORM logger interface
+	_ "modernc.org/sqlite"           // Import the pure Go SQLite driver
 )
 
 // InitDB 初始化数据库连接并运行迁移
@@ -26,11 +28,33 @@ func InitDB(dbPath string) (*gorm.DB, error) {
 		},
 	)
 
+	// Use the GORM sqlite driver's Open function.
+	// It should automatically use the registered "sqlite" driver (modernc.org/sqlite)
 	db, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{
 		Logger: newLogger, // Use configured logger
 	})
+
+	// // Use the generic GORM Open with the driver name "sqlite" // Previous attempt
+	// sqlDB, err := sql.Open("sqlite", dbPath)
+	// if err != nil {
+	// 	return nil, fmt.Errorf("failed to open sqlite db: %w", err)
+	// }
+
+	// db, err := gorm.Open(gorm.Dialector{ // Pass the driver name and existing connection // Previous attempt
+	// 	Name:           "sqlite",
+	// 	Conn:           sqlDB,
+	// 	SkipInitialize: true, // Prevent GORM from trying to initialize again
+	// }, &gorm.Config{
+	// 	Logger: newLogger, // Use configured logger
+	// })
+
+	// db, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{ // Original line
+	// 	Logger: newLogger, // Use configured logger
+	// })
 	if err != nil {
-		return nil, fmt.Errorf("failed to connect database: %w", err)
+		// // Ensure the underlying sql.DB is closed if gorm.Open fails // Previous attempt cleanup
+		// _ = sqlDB.Close()
+		return nil, fmt.Errorf("failed to connect database: %w", err) // Reverted error message
 	}
 
 	// 运行自动迁移
