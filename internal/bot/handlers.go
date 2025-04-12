@@ -1226,12 +1226,18 @@ func SendLoraSelectionKeyboard(chatID int64, messageID int, state *UserState, de
 		loraPromptBuilder.WriteString(deps.I18n.T(userLang, "lora_selection_keyboard_selected", "selection", fmt.Sprintf("`%s`", strings.Join(state.SelectedLoras, "`, `"))))
 		// loraPromptBuilder.WriteString(fmt.Sprintf(" (已选: `%s`)", strings.Join(state.SelectedLoras, "`, `")))
 	}
-	loraPromptBuilder.WriteString(deps.I18n.T(userLang, "lora_selection_keyboard_prompt_suffix", "prompt", state.OriginalCaption))
+
+	// Escape markdown in the user's caption before embedding
+	escapedCaption := state.OriginalCaption
+	// Escape backticks first, then other characters
+	escapedCaption = strings.ReplaceAll(escapedCaption, "`", "\\`") // Escape backticks
+	escapedCaption = strings.ReplaceAll(escapedCaption, "*", "\\*") // Escape asterisks
+	escapedCaption = strings.ReplaceAll(escapedCaption, "_", "\\_") // Escape underscores
+
+	loraPromptBuilder.WriteString(deps.I18n.T(userLang, "lora_selection_keyboard_prompt_suffix", "prompt", escapedCaption))
 	// loraPromptBuilder.WriteString(":\nPrompt: ```\n")
-	// No need to escape original caption for ModeMarkdown (unless it has _, *, `, [ )
-	// Let's assume simple prompts for now. If complex prompts break, add targeted escaping later.
-	loraPromptBuilder.WriteString(state.OriginalCaption)
-	loraPromptBuilder.WriteString("\n```")
+	// loraPromptBuilder.WriteString(escapedCaption) // Use escaped version
+	// loraPromptBuilder.WriteString("\n```")
 	loraPrompt := loraPromptBuilder.String()
 
 	// Send or Edit the message

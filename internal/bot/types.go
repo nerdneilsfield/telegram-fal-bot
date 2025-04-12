@@ -77,7 +77,9 @@ func GenerateIDWithBlake2b(s1, s2 string, f float64) (string, error) {
 	return hex.EncodeToString(hash.Sum(nil)), nil
 }
 
-// GenerateLoraConfig converts a config.LoraConfig (from file) into a bot.LoraConfig (with runtime ID).
+// Duplicate function removed to resolve redeclaration error.
+// The version in bot.go is now the primary one.
+/*
 func GenerateLoraConfig(loraCfg cfg.LoraConfig) (LoraConfig, error) {
 	id, err := GenerateIDWithBlake2b(loraCfg.Name, loraCfg.URL, loraCfg.Weight)
 	if err != nil {
@@ -92,3 +94,4 @@ func GenerateLoraConfig(loraCfg cfg.LoraConfig) (LoraConfig, error) {
 		AllowGroups: loraCfg.AllowGroups,
 	}, nil
 }
+*/

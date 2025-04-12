@@ -2,6 +2,8 @@ package bot
 
 import (
 	"fmt" // Added for panic message
+	"regexp"
+	"strings"
 
 	"github.com/nerdneilsfield/telegram-fal-bot/internal/auth"
 	// "github.com/nerdneilsfield/telegram-fal-bot/internal/balance" // Commented out
@@ -162,4 +164,43 @@ func SetBotCommands(bot *tgbotapi.BotAPI, logger *zap.Logger, defaultLang string
 	} else {
 		logger.Info("Successfully set bot commands")
 	}
+}
+
+// GenerateLoraConfig sanitizes and prepares a LoraConfig for bot internal use.
+func GenerateLoraConfig(lora config.LoraConfig) (LoraConfig, error) {
+	// Sanitize Name to create ID
+	id := strings.ToLower(lora.Name)
+	id = strings.ReplaceAll(id, " ", "_")
+	// Define a regex to keep only alphanumeric and underscores
+	reg := regexp.MustCompile("[^a-z0-9_]+")
+	id = reg.ReplaceAllString(id, "")
+	// Remove leading/trailing/multiple underscores
+	id = strings.Trim(id, "_")
+	for strings.Contains(id, "__") {
+		id = strings.ReplaceAll(id, "__", "_")
+	}
+
+	if id == "" {
+		return LoraConfig{}, fmt.Errorf("generated empty ID for LoRA name: %s", lora.Name)
+	}
+
+	// Ensure ID length + prefix length ("lora_select_") <= 64 bytes
+	const prefixLength = 12 // len("lora_select_")
+	const maxCallbackDataLength = 64
+	maxIDLength := maxCallbackDataLength - prefixLength // 52
+	if len(id) > maxIDLength {
+		id = id[:maxIDLength]
+		// Consider logging a warning if a logger is available here
+	}
+
+	// Return the bot.LoraConfig with only the defined fields
+	return LoraConfig{
+		ID:          id, // Use sanitized and truncated ID
+		Name:        lora.Name,
+		URL:         lora.URL,         // Field exists in config.LoraConfig
+		Weight:      lora.Weight,      // Field exists in config.LoraConfig
+		AllowGroups: lora.AllowGroups, // Field exists in config.LoraConfig
+		// BaseLoraOnly seems to be missing from config.LoraConfig, remove if necessary
+		// BaseLoraOnly: lora.BaseLoraOnly, // Assuming this exists, otherwise remove
+	}, nil
 }
