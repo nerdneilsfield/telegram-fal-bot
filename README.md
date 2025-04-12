@@ -9,6 +9,16 @@ English | [中文](https://github.com/nerdneilsfield/telegram-fal-bot/blob/maste
 <a href="https://github.com/nerdneilsfield/telegram-fal-bot/actions/workflows/goreleaser.yml" target="_blank"><img src="https://github.com/nerdneilsfield/telegram-fal-bot/actions/workflows/goreleaser.yml/badge.svg" alt="CI" /></a>
 </div>
 
+<div align="center">
+
+<a href="https://hub.docker.com/r/nerdneils/telegram-fal-bot" target="_blank"><img src="https://img.shields.io/docker/pulls/nerdneils/telegram-fal-bot" alt="Docker Pulls"></a>
+<a href="https://hub.docker.com/r/nerdneils/telegram-fal-bot" target="_blank"><img src="https://img.shields.io/docker/image-size/nerdneils/telegram-fal-bot/latest" alt="Docker Image Size"></a>
+<a href="https://github.com/nerdneilsfield/telegram-fal-bot/pkgs/container/telegram-fal-bot" target="_blank"><img src="https://img.shields.io/github/docker/image-size/nerdneilsfield/telegram-fal-bot?label=GHCR%20Image%20Size&logo=github&registry_uri=ghcr.io" alt="GHCR Image Size" /></a>
+<a href="https://github.com/nerdneilsfield/telegram-fal-bot/releases/latest" target="_blank"><img src="https://img.shields.io/github/release/nerdneilsfield/telegram-fal-bot.svg" alt="GitHub Release" /></a>
+<a href="https://github.com/nerdneilsfield/telegram-fal-bot/releases/latest" target="_blank"><img src="https://img.shields.io/github/release-date/nerdneilsfield/telegram-fal-bot.svg" alt="GitHub Release Date" /></a>
+<a href="https://github.com/nerdneilsfield/telegram-fal-bot/releases/latest" target="_blank"><img src="https://img.shields.io/github/downloads/nerdneilsfield/telegram-fal-bot/total.svg" alt="GitHub Downloads" /></a>
+
+
 A Telegram bot integrated with the Fal AI API to provide AI-powered features like image generation and captioning directly within Telegram chats.
 
 ## Features
@@ -107,10 +117,10 @@ To run the bot using Docker:
       -v $(pwd)/bot_data:/app/data \
       -v $(pwd)/bot_logs:/app/logs \
       --restart unless-stopped \
-      nerdneilsfield/telegram-fal-bot:latest start /app/config.toml
+      nerdneils/telegram-fal-bot:latest start /app/config.toml
     ```
 
-    * Replace `nerdneilsfield/telegram-fal-bot:latest` with `ghcr.io/nerdneilsfield/telegram-fal-bot:latest` if using GHCR.
+    * Replace `nerdneils/telegram-fal-bot:latest` with `ghcr.io/nerdneilsfield/telegram-fal-bot:latest` if using GHCR.
     * `-d`: Run in detached mode.
     * `--name fal-bot`: Assign a name to the container.
     * `-v $(pwd)/config.toml:/app/config.toml:ro`: Mount your local `config.toml` as read-only into the container at `/app/config.toml`.

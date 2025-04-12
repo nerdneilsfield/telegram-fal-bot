@@ -9,6 +9,17 @@
 <a href="https://github.com/nerdneilsfield/telegram-fal-bot/actions/workflows/goreleaser.yml" target="_blank"><img src="https://github.com/nerdneilsfield/telegram-fal-bot/actions/workflows/goreleaser.yml/badge.svg" alt="CI" /></a>
 </div>
 
+<div align="center">
+
+<a href="https://hub.docker.com/r/nerdneils/telegram-fal-bot" target="_blank"><img src="https://img.shields.io/docker/pulls/nerdneils/telegram-fal-bot" alt="Docker Pulls"></a>
+<a href="https://hub.docker.com/r/nerdneils/telegram-fal-bot" target="_blank"><img src="https://img.shields.io/docker/image-size/nerdneils/telegram-fal-bot/latest" alt="Docker Image Size"></a>
+<a href="https://github.com/nerdneilsfield/telegram-fal-bot/pkgs/container/telegram-fal-bot" target="_blank"><img src="https://img.shields.io/github/docker/image-size/nerdneilsfield/telegram-fal-bot?label=GHCR%20Image%20Size&logo=github&registry_uri=ghcr.io" alt="GHCR Image Size" /></a>
+<a href="https://github.com/nerdneilsfield/telegram-fal-bot/releases/latest" target="_blank"><img src="https://img.shields.io/github/release/nerdneilsfield/telegram-fal-bot.svg" alt="GitHub Release" /></a>
+<a href="https://github.com/nerdneilsfield/telegram-fal-bot/releases/latest" target="_blank"><img src="https://img.shields.io/github/release-date/nerdneilsfield/telegram-fal-bot.svg" alt="GitHub Release Date" /></a>
+<a href="https://github.com/nerdneilsfield/telegram-fal-bot/releases/latest" target="_blank"><img src="https://img.shields.io/github/downloads/nerdneilsfield/telegram-fal-bot/total.svg" alt="GitHub Downloads" /></a>
+
+</div>
+
 一个集成了 Fal AI API 的 Telegram 机器人，可以直接在 Telegram 聊天中提供 AI 驱动的功能，如图像生成和图像描述。
 
 ## 功能特性
@@ -107,10 +118,10 @@
       -v $(pwd)/bot_data:/app/data \
       -v $(pwd)/bot_logs:/app/logs \
       --restart unless-stopped \
-      nerdneilsfield/telegram-fal-bot:latest start /app/config.toml
+      nerdneils/telegram-fal-bot:latest start /app/config.toml
     ```
 
-    * 如果使用 GHCR，请将 `nerdneilsfield/telegram-fal-bot:latest` 替换为 `ghcr.io/nerdneilsfield/telegram-fal-bot:latest`。
+    * 如果使用 GHCR，请将 `nerdneils/telegram-fal-bot:latest` 替换为 `ghcr.io/nerdneilsfield/telegram-fal-bot:latest`。
     * `-d`: 在后台模式运行。
     * `--name fal-bot`: 为容器分配一个名称。
     * `-v $(pwd)/config.toml:/app/config.toml:ro`: 将你本地的 `config.toml` 以只读方式挂载到容器内的 `/app/config.toml`。
