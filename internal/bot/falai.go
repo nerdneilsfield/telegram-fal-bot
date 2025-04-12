@@ -340,30 +340,42 @@ func sendResultsToUser(chatID int64, originalMessageID int, caption string, imag
 	userLang := getUserLanguagePreference(chatID, deps) // Assuming chatID gives user context
 
 	if len(images) == 1 {
+		// Send photo without caption first
 		photoMsg := tgbotapi.NewPhoto(chatID, tgbotapi.FileURL(images[0].URL))
-		photoMsg.Caption = caption
-		photoMsg.ParseMode = tgbotapi.ModeMarkdown
 		if _, err := deps.Bot.Send(photoMsg); err != nil {
-			deps.Logger.Error("Failed to send single combined photo", zap.Error(err), zap.Int64("chat_id", chatID))
-			sendErr = err
+			deps.Logger.Error("Failed to send single photo (without caption)", zap.Error(err), zap.Int64("chat_id", chatID))
+			sendErr = err // Record the first error
+		} else {
+			// Then send the caption as a separate message
+			captionMsg := tgbotapi.NewMessage(chatID, caption)
+			captionMsg.ParseMode = tgbotapi.ModeMarkdown
+			if _, err := deps.Bot.Send(captionMsg); err != nil {
+				deps.Logger.Error("Failed to send caption for single photo", zap.Error(err), zap.Int64("chat_id", chatID))
+				if sendErr == nil { // Only record if sending photo succeeded
+					sendErr = err
+				}
+			}
 		}
 	} else if len(images) > 1 {
+		// Send caption first for multiple images (existing logic is fine)
 		captionMsg := tgbotapi.NewMessage(chatID, caption)
 		captionMsg.ParseMode = tgbotapi.ModeMarkdown
 		if _, err := deps.Bot.Send(captionMsg); err != nil {
 			deps.Logger.Error("Failed to send caption before media group", zap.Error(err), zap.Int64("chat_id", chatID))
-			// Continue trying to send images
+			// Continue trying to send images, record the error
+			sendErr = err
 		}
 
 		var mediaGroup []interface{}
 		for i, img := range images {
+			// Ensure media items themselves don't have captions
 			photo := tgbotapi.NewInputMediaPhoto(tgbotapi.FileURL(img.URL))
 			mediaGroup = append(mediaGroup, photo)
 			if len(mediaGroup) == 10 || i == len(images)-1 { // Send when group reaches 10 or it's the last image
 				mediaMessage := tgbotapi.NewMediaGroup(chatID, mediaGroup)
 				if _, err := deps.Bot.Request(mediaMessage); err != nil {
 					deps.Logger.Error("Failed to send image group chunk", zap.Error(err), zap.Int64("chat_id", chatID), zap.Int("chunk_size", len(mediaGroup)))
-					if sendErr == nil {
+					if sendErr == nil { // Record the first sending error
 						sendErr = err
 					}
 				}
