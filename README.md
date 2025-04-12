@@ -87,7 +87,7 @@ A Telegram bot integrated with the Fal AI API to provide AI-powered features lik
 
 Pre-built Docker images are available on Docker Hub and GitHub Container Registry:
 
-* Docker Hub: `nerdneilsfield/telegram-fal-bot:latest`
+* Docker Hub: `nerdneils/telegram-fal-bot:latest`
 * GHCR: `ghcr.io/nerdneilsfield/telegram-fal-bot:latest`
 
 To run the bot using Docker:

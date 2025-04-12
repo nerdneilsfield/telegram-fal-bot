@@ -87,7 +87,7 @@
 
 预构建的 Docker 镜像可在 Docker Hub 和 GitHub Container Registry 上获取：
 
-* Docker Hub: `nerdneilsfield/telegram-fal-bot:latest`
+* Docker Hub: `nerdneils/telegram-fal-bot:latest`
 * GHCR: `ghcr.io/nerdneilsfield/telegram-fal-bot:latest`
 
 要使用 Docker 运行机器人：
