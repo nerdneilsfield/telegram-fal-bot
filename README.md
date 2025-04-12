@@ -17,7 +17,7 @@ English | [中文](https://github.com/nerdneilsfield/telegram-fal-bot/blob/maste
 <a href="https://github.com/nerdneilsfield/telegram-fal-bot/releases/latest" target="_blank"><img src="https://img.shields.io/github/release/nerdneilsfield/telegram-fal-bot.svg" alt="GitHub Release" /></a>
 <a href="https://github.com/nerdneilsfield/telegram-fal-bot/releases/latest" target="_blank"><img src="https://img.shields.io/github/release-date/nerdneilsfield/telegram-fal-bot.svg" alt="GitHub Release Date" /></a>
 <a href="https://github.com/nerdneilsfield/telegram-fal-bot/releases/latest" target="_blank"><img src="https://img.shields.io/github/downloads/nerdneilsfield/telegram-fal-bot/total.svg" alt="GitHub Downloads" /></a>
-
+</div>
 
 A Telegram bot integrated with the Fal AI API to provide AI-powered features like image generation and captioning directly within Telegram chats.
 
