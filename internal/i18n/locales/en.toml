@@ -7,13 +7,15 @@ help_usage_image = "1\\.  *Send an image*: I will automatically describe it. You
 help_usage_text = "2\\.  *Send a text description directly*: I will use your text as the prompt, let you choose LoRA styles, and generate the image."
 help_commands_title = "*Available Commands*:"
 help_command_start = "/start \\- Show welcome message"
-help_command_help = "/help \\- Show this help message"
-help_command_loras = "/loras \\- View the list of LoRA styles currently available to you"
-help_command_myconfig = "/myconfig \\- View and modify your personalized image generation parameters (size, steps, etc.)"
+help_command_help = "/help - Show this help message"
+help_command_loras = "/loras - View the list of LoRA styles currently available to you"
+help_command_myconfig = "/myconfig - View and modify your personalized image generation parameters (size, steps, etc.)"
 help_command_balance = "/balance \\- Check your current generation point balance (if enabled)"
 help_command_version = "/version \\- View the current Bot version information"
 help_command_cancel = "/cancel \\- Cancel the current operation"
 help_command_set = "/set \\- (Admin) Manage user groups and LoRA permissions"
+help_command_log = "/log \\- (Admin) Get the full log file"
+help_command_shortlog = "/shortlog \\- (Admin) Get the last 100 lines of the log file"
 help_flow_title = "*Generation Flow*:"
 help_flow_step1 = "\\- After sending an image or text, I will prompt you to select LoRA styles."
 help_flow_step2 = "\\- Click the LoRA name buttons to select/deselect."
@@ -32,6 +34,8 @@ command_desc_balance = "Check your current balance"
 command_desc_version = "View bot version information"
 command_desc_cancel = "Cancel the current operation"
 command_desc_set = "(Admin) Manage user groups and LoRA permissions"
+command_desc_log = "(Admin) Get the full log file"
+command_desc_shortlog = "(Admin) Get the last 100 lines of the log file"
 
 balance_current = "Your current balance is: {{.balance}} points"
 balance_not_enabled = "Balance feature is not enabled."
@@ -40,8 +44,8 @@ balance_admin_fetch_failed = "Failed to fetch balance. {{.error}}"
 balance_admin_actual = "Your actual account balance is: {{.balance}} USD"
 
 loras_available_title = "Available LoRA Styles:"
-loras_item = "- `{name}`"
-loras_none_available = "No LoRA styles currently available."
+loras_item = "- `{{.name}}`"
+loras_none_available = "No LoRA styles are currently available."
 loras_base_title_admin = "\nBase LoRA Styles (Admin Only):"
 
 version_info = "Current Version: {{.version}}\nBuild Date: {{.buildDate}}\nGo Version: {{.goVersion}}"
@@ -208,6 +212,18 @@ config_update_success = "✅ Configuration updated successfully!"
 # Example structure from your request (for reference)
 HelloPerson = "Hello {{.Name}}"
 
+# Log command specific translations
+log_admin_only = "❌ This command can only be used by administrators."
+log_file_disabled = "ℹ️ File logging is not enabled in the configuration."
+log_sending = "⏳ Fetching log file..."
+log_sending_short = "⏳ Fetching last 100 lines of log file..."
+log_read_error = "⚠️ Error reading log file: {{.error}}"
+log_temp_file_error = "⚠️ Error creating temporary file: {{.error}}"
+log_write_error = "⚠️ Error writing to temporary file: {{.error}}"
+log_send_error = "⚠️ Error sending log file: {{.error}}"
+shortlog_caption = "📄 Last {{.lines}} lines of the log file."
+
+
 [MyUnreadEmails]
 description = "The number of unread emails I have"
 one = "I have {{.PluralCount}} unread email."
@@ -227,4 +243,3 @@ other = "⚠️ Invalid input. Please enter an integer between {{.min}} and {{.m
 # description = "Error message for invalid float input range" # Optional description added
 one = "⚠️ Invalid input. Please enter a number between {{.min}} and {{.max}} (e.g., 7.0)."
 other = "⚠️ Invalid input. Please enter a number between {{.min}} and {{.max}} (e.g., 7.0)."
-

@@ -1,6 +1,7 @@
 package bot
 
 import (
+	// Import database/sql
 	"fmt" // Added for panic message
 	"regexp"
 	"strings"
@@ -24,9 +25,6 @@ var (
 	Version   = "dev"
 	BuildDate = "unknown"
 )
-
-// BotDeps holds the dependencies required by the bot handlers.
-// type BotDeps struct { ... } // Ensure this is commented out or removed
 
 // StartBot initializes and starts the Telegram bot.
 // Corrected signature to accept config, version, buildDate
@@ -67,11 +65,14 @@ func StartBot(cfg *config.Config, version string, buildDate string) error {
 		logger.Fatal("Failed to initialize i18n manager", zap.Error(err))
 	}
 
-	// Initialize Database (Pass the initialized logger? No, InitDB doesn't take it)
+	// Initialize Database (Returns *sql.DB now)
 	db, err := storage.InitDB(cfg.DBPath)
 	if err != nil {
 		logger.Fatal("Failed to initialize database", zap.Error(err))
 	}
+	// Defer closing the DB connection pool when StartBot exits
+	// This might need adjustment based on application lifecycle
+	// defer db.Close()
 
 	// Initialize State Manager
 	stateManager := NewStateManager()
@@ -80,9 +81,10 @@ func StartBot(cfg *config.Config, version string, buildDate string) error {
 	authorizer := auth.NewAuthorizer(cfg.Auth.AuthorizedUserIDs, cfg.Admins.AdminUserIDs)
 
 	// Initialize Balance Manager (Optional)
-	var balanceManager *storage.GormBalanceManager
+	var balanceManager *storage.SQLBalanceManager // Use SQLBalanceManager
 	if cfg.Balance.CostPerGeneration > 0 {
-		balanceManager = storage.NewGormBalanceManager(db, cfg.Balance.InitialBalance, cfg.Balance.CostPerGeneration)
+		// Use NewSQLBalanceManager
+		balanceManager = storage.NewSQLBalanceManager(db, cfg.Balance.InitialBalance, cfg.Balance.CostPerGeneration)
 		logger.Info("Balance tracking enabled")
 	} else {
 		logger.Info("Balance tracking disabled")
@@ -112,10 +114,10 @@ func StartBot(cfg *config.Config, version string, buildDate string) error {
 	deps := BotDeps{
 		Bot:            bot,
 		FalClient:      falClient,
-		DB:             db,
+		DB:             db, // Pass the *sql.DB
 		StateManager:   stateManager,
 		Authorizer:     authorizer,
-		BalanceManager: balanceManager,
+		BalanceManager: balanceManager, // Pass the *SQLBalanceManager
 		I18n:           i18nManager,
 		Logger:         logger, // Pass the logger initialized above
 		Config:         cfg,
@@ -156,6 +158,8 @@ func SetBotCommands(bot *tgbotapi.BotAPI, logger *zap.Logger, defaultLang string
 		{Command: "version", Description: i18nManager.T(&defaultLang, "command_desc_version")},
 		{Command: "cancel", Description: i18nManager.T(&defaultLang, "command_desc_cancel")},
 		{Command: "set", Description: i18nManager.T(&defaultLang, "command_desc_set")},
+		{Command: "log", Description: i18nManager.T(&defaultLang, "command_desc_log")},
+		{Command: "shortlog", Description: i18nManager.T(&defaultLang, "command_desc_shortlog")},
 	}
 
 	commandsConfig := tgbotapi.NewSetMyCommands(commands...)

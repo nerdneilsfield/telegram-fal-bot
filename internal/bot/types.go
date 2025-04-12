@@ -1,6 +1,7 @@
 package bot
 
 import (
+	"database/sql"
 	"encoding/hex"
 	"fmt"
 	"time"
@@ -18,7 +19,8 @@ import (
 	st "github.com/nerdneilsfield/telegram-fal-bot/internal/storage"
 	fapi "github.com/nerdneilsfield/telegram-fal-bot/pkg/falapi"
 	"go.uber.org/zap"
-	"gorm.io/gorm"
+	// Removed gorm import
+	// "gorm.io/gorm"
 )
 
 // LoraConfig represents the configuration for a single LoRA, including a generated ID.
@@ -50,10 +52,10 @@ type UserState struct {
 type BotDeps struct {
 	Bot            *tgbotapi.BotAPI
 	FalClient      *fapi.Client
-	DB             *gorm.DB
+	DB             *sql.DB
 	StateManager   *StateManager // Correct type within the same package
 	Authorizer     *auth.Authorizer
-	BalanceManager *st.GormBalanceManager // Use storage.GormBalanceManager pointer
+	BalanceManager *st.SQLBalanceManager // Changed to SQLBalanceManager
 	I18n           *i18n.Manager
 	Logger         *zap.Logger
 	Config         *cfg.Config

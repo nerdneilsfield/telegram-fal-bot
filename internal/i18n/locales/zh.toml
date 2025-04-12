@@ -7,13 +7,15 @@ help_usage_image = "1\\.  *发送图片*：我会自动描述这张图片，然�
 help_usage_text = "2\\.  *直接发送文本描述*：我会直接使用你的文本作为提示词 \\(Prompt\\)，让你选择 LoRA 风格并生成图片。"
 help_commands_title = "*可用命令*:"
 help_command_start = "/start \\- 显示欢迎信息"
-help_command_help = "/help \\- 显示此帮助信息"
-help_command_loras = "/loras \\- 查看你当前可用的 LoRA 风格列表"
-help_command_myconfig = "/myconfig \\- 查看和修改你的个性化图片生成参数（尺寸、步数等）"
+help_command_help = "/help - 显示此帮助信息"
+help_command_loras = "/loras - 查看您当前可用的 LoRA 风格列表"
+help_command_myconfig = "/myconfig - 查看并修改您的个性化图片生成参数（尺寸、步数等）"
 help_command_balance = "/balance \\- 查询你当前的生成点数余额 \\(如果启用了此功能\\)"
 help_command_version = "/version \\- 查看当前 Bot 的版本信息"
 help_command_cancel = "/cancel \\- 取消当前操作"
 help_command_set = "/set \\- (管理员) 管理用户组和Lora权限"
+help_command_log = "/log - (管理员) 获取完整的日志文件"
+help_command_shortlog = "/shortlog - (管理员) 获取日志文件的最后100行"
 help_flow_title = "*生成流程*:"
 help_flow_step1 = "\\- 发送图片或文本后，我会提示你选择 LoRA 风格。"
 help_flow_step2 = "\\- 点击 LoRA 名称按钮进行选择/取消选择。"
@@ -32,6 +34,8 @@ command_desc_balance = "查询余额"       # 示例翻译，请修改
 command_desc_version = "显示版本信息"   # 示例翻译，请修改
 command_desc_cancel = "取消当前操作"   # 示例翻译，请修改
 command_desc_set = "(管理员)用户和权限管理" # 示例翻译，请修改
+command_desc_log = "(管理员) 获取完整的日志文件"
+command_desc_shortlog = "(管理员) 获取日志文件的最后100行"
 
 
 balance_current = "您当前的余额是: {{.balance}} 点"
@@ -206,6 +210,18 @@ keyboard_button_caption_confirm = "✅ 使用此描述"
 config_update_success = "✅ 配置更新成功！"
 
 config_callback_lang_invalid = "选择的语言无效。"
+
+
+# 日志命令相关翻译
+log_admin_only = "❌ 此命令仅限管理员使用。"
+log_file_disabled = "ℹ️ 配置中未启用文件日志记录。"
+log_sending = "⏳ 正在获取日志文件..."
+log_sending_short = "⏳ 正在获取日志文件的最后 100 行..."
+log_read_error = "⚠️ 读取日志文件时出错: {{.error}}"
+log_temp_file_error = "⚠️ 创建临时文件时出错: {{.error}}"
+log_write_error = "⚠️ 写入临时文件时出错: {{.error}}"
+log_send_error = "⚠️ 发送日志文件时出错: {{.error}}"
+shortlog_caption = "📄 日志文件的最后 {{.lines}} 行。"
 
 [config_invalid_input_int_range]
 # description = "无效整数输入范围的错误消息" # Optional description added

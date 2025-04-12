@@ -36,3 +36,9 @@ test.toml
 
 # Database file
 botdata.db
+botdata.db-shm
+botdata.db-wal
+
+# log file
+bot.log
+*.log
