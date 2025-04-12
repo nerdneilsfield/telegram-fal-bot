@@ -22,6 +22,7 @@ type Config struct {
 	Balance                   BalanceConfig      `toml:"balance"`
 	DefaultGenerationSettings GenerationConfig   `toml:"defaultGenerationSettings"`
 	UserGroups                []UserGroup        `toml:"userGroups"`
+	DefaultLanguage           string             `toml:"defaultLanguage"`
 }
 
 type LogConfig struct {
@@ -115,6 +116,7 @@ func PrintConfig(cfg *Config) {
 	fmt.Printf("\tBalance: %v\n", cfg.Balance)
 	fmt.Printf("\tDefaultGenerationSettings: %v\n", cfg.DefaultGenerationSettings)
 	fmt.Printf("\tUserGroups: %v\n", cfg.UserGroups)
+	fmt.Printf("\tDefaultLanguage: %s\n", cfg.DefaultLanguage)
 	fmt.Println("--------------------------------")
 	fmt.Println()
 }
@@ -174,6 +176,9 @@ func ValidateConfig(cfg *Config) error {
 	}
 	if cfg.DefaultGenerationSettings.NumImages <= 0 {
 		return fmt.Errorf("numImages must be positive")
+	}
+	if cfg.DefaultLanguage == "" {
+		return fmt.Errorf("defaultLanguage is required")
 	}
 
 	groupNames := make(map[string]struct{})

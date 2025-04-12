@@ -66,6 +66,8 @@ func run(verbose bool, configFile string, version string, buildTime string) erro
 		return nil
 	}
 
+	// 此处无需更改，StartBot 的签名未变，
+	// cfg *Config 参数包含了 DefaultLanguage
 	bot.StartBot(cfg, version, buildTime)
 	return nil
 }

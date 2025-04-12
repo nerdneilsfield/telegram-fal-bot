@@ -1,243 +1,165 @@
 package bot
 
 import (
-	"context"
-	"fmt"
-	"runtime/debug" // 导入 debug 包
-	"time"
+	"fmt" // Added for panic message
 
-	auth "github.com/nerdneilsfield/telegram-fal-bot/internal/auth"
-	cfg "github.com/nerdneilsfield/telegram-fal-bot/internal/config" // Optional
-	loggerPkg "github.com/nerdneilsfield/telegram-fal-bot/internal/logger"
+	"github.com/nerdneilsfield/telegram-fal-bot/internal/auth"
+	// "github.com/nerdneilsfield/telegram-fal-bot/internal/balance" // Commented out
+	"github.com/nerdneilsfield/telegram-fal-bot/internal/config"
+	"github.com/nerdneilsfield/telegram-fal-bot/internal/i18n"
+	"github.com/nerdneilsfield/telegram-fal-bot/internal/logger" // Import logger package
+
 	"github.com/nerdneilsfield/telegram-fal-bot/internal/storage"
-	fapi "github.com/nerdneilsfield/telegram-fal-bot/pkg/falapi"
-
-	"os"
-	"os/signal"
-	"syscall"
+	falapi "github.com/nerdneilsfield/telegram-fal-bot/pkg/falapi"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"go.uber.org/zap"
 	// Add gorm import if not already present
 )
 
-func StartBot(config *cfg.Config, version string, buildDate string) {
-	// Initialize logger
-	logger, err := loggerPkg.InitLogger(config.LogConfig.Level, config.LogConfig.Format, config.LogConfig.File)
-	if err != nil {
-		panic(fmt.Sprintf("Logger not initialized: %v", err))
-	}
+// Version and BuildDate are injected during build
+var (
+	Version   = "dev"
+	BuildDate = "unknown"
+)
 
-	logger.Info("Starting Telegram Bot...")
+// BotDeps holds the dependencies required by the bot handlers.
+// type BotDeps struct { ... } // Ensure this is commented out or removed
 
-	// Initialize Database
-	db, err := storage.InitDB(config.DBPath)
+// StartBot initializes and starts the Telegram bot.
+// Corrected signature to accept config, version, buildDate
+func StartBot(cfg *config.Config, version string, buildDate string) error {
+	// Initialize Logger first, inside StartBot
+	logger, err := logger.InitLogger(cfg.LogConfig.Level, cfg.LogConfig.Format, cfg.LogConfig.File)
 	if err != nil {
-		logger.Fatal("Failed to initialize database", zap.Error(err))
+		// Use fmt.Sprintf for panic as logger might not be initialized
+		panic(fmt.Sprintf("Logger initialization failed: %v", err))
 	}
-	logger.Info("Database initialized successfully")
+	defer logger.Sync() // Ensure logs are flushed on exit
 
-	// Initialize Fal API Client
-	falClient, err := fapi.NewClient(
-		config.FalAIKey,
-		config.APIEndpoints.BaseURL,
-		config.APIEndpoints.FluxLora,
-		config.APIEndpoints.FlorenceCaption,
-		logger,
-	)
-	if err != nil {
-		logger.Fatal("Failed to initialize Fal API client", zap.Error(err))
-	}
-	logger.Info("Fal API Client initialized successfully")
+	logger.Info("Starting Telegram Bot...", zap.String("version", version), zap.String("buildDate", buildDate))
 
-	// Initialize Telegram Bot API
-	bot, err := tgbotapi.NewBotAPI(config.BotToken)
+	// Initialize Bot API
+	bot, err := tgbotapi.NewBotAPI(cfg.BotToken)
 	if err != nil {
-		logger.Fatal("Failed to create Bot API", zap.Error(err))
+		logger.Fatal("Failed to create bot", zap.Error(err))
 	}
-	bot.Debug = false // Disable debug logging for the bot library unless needed
+	// bot.Debug = cfg.TelegramDebug // Field missing
 	logger.Info("Authorized on account", zap.String("username", bot.Self.UserName))
 
-	// Set bot commands
-	commands := []tgbotapi.BotCommand{
-		{Command: "start", Description: "开始使用 Bot"},
-		{Command: "help", Description: "获取帮助信息"},
-		{Command: "cancel", Description: "取消当前操作"},
-		{Command: "balance", Description: "查询余额"},
-		{Command: "loras", Description: "查看可用风格"},
-		{Command: "version", Description: "查看版本信息"},
-		{Command: "myconfig", Description: "查看/设置我的生成参数"},
-		{Command: "set", Description: "(管理员) 管理用户组和Lora权限"},
+	// Initialize Fal Client (Pass the initialized logger)
+	falClient, err := falapi.NewClient(
+		cfg.FalAIKey,
+		cfg.APIEndpoints.BaseURL,
+		cfg.APIEndpoints.FluxLora,
+		cfg.APIEndpoints.FlorenceCaption,
+		logger.Named("fal_client"), // Pass named logger
+	)
+	if err != nil {
+		logger.Fatal("Failed to initialize Fal client", zap.Error(err))
 	}
-	commandsConfig := tgbotapi.NewSetMyCommands(commands...)
-	if _, err := bot.Request(commandsConfig); err != nil {
-		logger.Error("Failed to set bot commands", zap.Error(err))
-	} else {
-		logger.Info("Successfully set bot commands")
+
+	// Initialize i18n Manager (Pass the initialized logger)
+	i18nManager, err := i18n.NewManager(cfg.DefaultLanguage, logger)
+	if err != nil {
+		logger.Fatal("Failed to initialize i18n manager", zap.Error(err))
+	}
+
+	// Initialize Database (Pass the initialized logger? No, InitDB doesn't take it)
+	db, err := storage.InitDB(cfg.DBPath)
+	if err != nil {
+		logger.Fatal("Failed to initialize database", zap.Error(err))
 	}
 
 	// Initialize State Manager
 	stateManager := NewStateManager()
 
 	// Initialize Authorizer
-	authorizer := auth.NewAuthorizer(config.Auth.AuthorizedUserIDs, config.Admins.AdminUserIDs)
-	logger.Info("Authorizer initialized")
+	authorizer := auth.NewAuthorizer(cfg.Auth.AuthorizedUserIDs, cfg.Admins.AdminUserIDs)
 
-	// Initialize Balance Manager (if configured)
+	// Initialize Balance Manager (Optional)
 	var balanceManager *storage.GormBalanceManager
-	if config.Balance.CostPerGeneration > 0 { // Enable balance manager only if cost is configured
-		balanceManager = storage.NewGormBalanceManager(db, config.Balance.InitialBalance, config.Balance.CostPerGeneration)
-		logger.Info("Balance Manager initialized", zap.Float64("initial", config.Balance.InitialBalance), zap.Float64("cost", config.Balance.CostPerGeneration))
+	if cfg.Balance.CostPerGeneration > 0 {
+		balanceManager = storage.NewGormBalanceManager(db, cfg.Balance.InitialBalance, cfg.Balance.CostPerGeneration)
+		logger.Info("Balance tracking enabled")
 	} else {
-		logger.Info("Balance Manager is disabled")
+		logger.Info("Balance tracking disabled")
 	}
 
-	// Initialize LoRA configurations (assuming GenerateLoraConfig is defined elsewhere)
-	baseLoraList := []LoraConfig{}
-	for _, lora := range config.BaseLoRAs {
-		loraConfig, err := GenerateLoraConfig(lora)
+	// Convert LoRA configs
+	var botLoras []LoraConfig
+	for _, cfgLora := range cfg.LoRAs {
+		botLora, err := GenerateLoraConfig(cfgLora)
 		if err != nil {
-			logger.Fatal("Failed to generate base lora config", zap.Error(err), zap.String("name", lora.Name))
+			logger.Error("Failed to process LoRA config", zap.String("name", cfgLora.Name), zap.Error(err))
+			continue
 		}
-		baseLoraList = append(baseLoraList, loraConfig)
+		botLoras = append(botLoras, botLora)
 	}
-
-	loras := []LoraConfig{}
-	for _, lora := range config.LoRAs {
-		loraConfig, err := GenerateLoraConfig(lora)
+	var botBaseLoras []LoraConfig
+	for _, cfgLora := range cfg.BaseLoRAs {
+		botLora, err := GenerateLoraConfig(cfgLora)
 		if err != nil {
-			logger.Fatal("Failed to generate lora config", zap.Error(err), zap.String("name", lora.Name))
+			logger.Error("Failed to process Base LoRA config", zap.String("name", cfgLora.Name), zap.Error(err))
+			continue
 		}
-		loras = append(loras, loraConfig)
+		botBaseLoras = append(botBaseLoras, botLora)
 	}
 
-	// Create BotDeps with the DB connection
+	// Prepare dependencies (Pass the initialized logger)
 	deps := BotDeps{
 		Bot:            bot,
 		FalClient:      falClient,
-		Config:         config,
-		DB:             db, // Pass the initialized DB connection
+		DB:             db,
 		StateManager:   stateManager,
-		BalanceManager: balanceManager,
 		Authorizer:     authorizer,
-		BaseLoRA:       baseLoraList,
-		LoRA:           loras,
-		Version:        version,
-		BuildDate:      buildDate,
-		Logger:         logger,
+		BalanceManager: balanceManager,
+		I18n:           i18nManager,
+		Logger:         logger, // Pass the logger initialized above
+		Config:         cfg,
+		LoRA:           botLoras,
+		BaseLoRA:       botBaseLoras,
+		Version:        version,   // Use passed-in version
+		BuildDate:      buildDate, // Use passed-in buildDate
 	}
 
-	// Setup update channel and signal handling
+	// Set bot commands (Pass the initialized logger)
+	SetBotCommands(bot, logger, cfg.DefaultLanguage, deps.I18n)
+
+	// Start update polling
 	u := tgbotapi.NewUpdate(0)
-	u.Timeout = 120
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	u.Timeout = 60
 	updates := bot.GetUpdatesChan(u)
-	sigs := make(chan os.Signal, 1)
-	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
-	go func() {
-		<-sigs
-		logger.Info("Received interrupt signal, shutting down...")
-		cancel()
-	}()
+	logger.Info("Bot started, listening for updates...")
+	for update := range updates {
+		go func(upd tgbotapi.Update) {
+			HandleUpdate(upd, deps)
+		}(update)
+	}
 
-	logger.Info("Starting update processing loop...")
-	for {
-		select {
-		case update := <-updates:
-			// 权限检查
-			var userID int64
-			if update.Message != nil {
-				userID = update.Message.From.ID
-			} else if update.CallbackQuery != nil {
-				userID = update.CallbackQuery.From.ID
-			} else {
-				continue // 忽略其他类型的更新
-			}
+	return nil
+}
 
-			if !authorizer.IsAuthorized(userID) {
-				logger.Warn("Unauthorized access attempt", zap.Int64("user_id", userID))
-				if update.Message != nil {
-					bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "抱歉，您无权使用此机器人。"))
-				} else if update.CallbackQuery != nil {
-					// 对 CallbackQuery 的未授权用户不直接回复消息，仅记录
-					// bot.AnswerCallbackQuery(tgbotapi.NewCallback(update.CallbackQuery.ID, "无权操作"))
-					// 使用 Request 方法替代
-					callback := tgbotapi.NewCallback(update.CallbackQuery.ID, "无权操作")
-					if _, err := bot.Request(callback); err != nil {
-						logger.Error("Failed to answer callback query for unauthorized user", zap.Error(err), zap.Int64("user_id", userID))
-					}
-				}
-				continue
-			}
+// SetBotCommands defines the commands available to the user.
+// Updated to accept default language string directly
+func SetBotCommands(bot *tgbotapi.BotAPI, logger *zap.Logger, defaultLang string, i18nManager *i18n.Manager) {
+	// Use the default language from config for command descriptions
+	commands := []tgbotapi.BotCommand{
+		{Command: "start", Description: i18nManager.T(&defaultLang, "command_desc_start")},
+		{Command: "help", Description: i18nManager.T(&defaultLang, "command_desc_help")},
+		{Command: "loras", Description: i18nManager.T(&defaultLang, "command_desc_loras")},
+		{Command: "myconfig", Description: i18nManager.T(&defaultLang, "command_desc_myconfig")},
+		{Command: "balance", Description: i18nManager.T(&defaultLang, "command_desc_balance")},
+		{Command: "version", Description: i18nManager.T(&defaultLang, "command_desc_version")},
+		{Command: "cancel", Description: i18nManager.T(&defaultLang, "command_desc_cancel")},
+		{Command: "set", Description: i18nManager.T(&defaultLang, "command_desc_set")},
+	}
 
-			// 异步处理每个用户的更新，避免阻塞主循环
-			go func(u tgbotapi.Update) {
-				// 可以添加 panic recovery
-				defer func() {
-					if r := recover(); r != nil {
-						errMsg := fmt.Sprintf("%v", r)
-						stackTrace := string(debug.Stack())
-						logger.Error("Panic recovered in handler", zap.Any("error", errMsg), zap.String("stack", stackTrace)) // Log full stack trace
-
-						// 尝试获取 chatID 和 userID
-						var chatID int64
-						var userID int64
-						if u.Message != nil {
-							chatID = u.Message.Chat.ID
-							userID = u.Message.From.ID
-						} else if u.CallbackQuery != nil { // Need to check CallbackQuery.From for UserID
-							userID = u.CallbackQuery.From.ID
-							if u.CallbackQuery.Message != nil { // Message might be nil in some callback scenarios?
-								chatID = u.CallbackQuery.Message.Chat.ID
-							} else {
-								// If message is nil in callback, cannot easily determine chatID to reply.
-								logger.Warn("Panic recovery: CallbackQuery.Message is nil, cannot determine chatID to reply", zap.Int64("user_id", userID))
-								// Optional: Try sending to userID directly if it's expected to be a private chat?
-								// chatID = userID
-							}
-						}
-
-						if chatID != 0 { // Only proceed if we have a chatID to send to
-							// 检查是否为管理员
-							isAdmin := false
-							for _, adminID := range deps.Config.Admins.AdminUserIDs {
-								if userID == adminID {
-									isAdmin = true
-									break
-								}
-							}
-
-							if isAdmin {
-								// Send detailed error to admin
-								detailedMsg := fmt.Sprintf("☢️ Panic Recovered ☢️\nError: %s\n\nTraceback:\n```\n%s\n```", errMsg, stackTrace)
-								const maxMsgLen = 4090 // Keep some buffer below 4096
-								if len(detailedMsg) > maxMsgLen {
-									detailedMsg = detailedMsg[:maxMsgLen] + "\n...(truncated)```" // Ensure markdown block is closed
-								}
-								// Use Markdown parse mode for the code block
-								msg := tgbotapi.NewMessage(chatID, detailedMsg)
-								msg.ParseMode = tgbotapi.ModeMarkdown
-								if _, errSend := bot.Send(msg); errSend != nil {
-									logger.Error("Failed to send panic details to admin", zap.Error(errSend), zap.Int64("admin_id", userID))
-								}
-							} else {
-								// Send generic error to non-admin user
-								bot.Send(tgbotapi.NewMessage(chatID, "处理您的请求时发生内部错误，请稍后再试。"))
-							}
-						}
-					}
-				}()
-				HandleUpdate(u, deps) // Pass deps containing DB connection
-			}(update)
-
-		case <-ctx.Done():
-			logger.Info("Update processing loop stopped.")
-			// Optional graceful shutdown delay
-			time.Sleep(5 * time.Second) // Reduced delay
-			logger.Info("Exiting.")
-			return
-		}
+	commandsConfig := tgbotapi.NewSetMyCommands(commands...)
+	if _, err := bot.Request(commandsConfig); err != nil {
+		logger.Error("Failed to set bot commands", zap.Error(err))
+	} else {
+		logger.Info("Successfully set bot commands")
 	}
 }

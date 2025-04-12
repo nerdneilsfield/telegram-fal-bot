@@ -1,0 +1,218 @@
+# Simplified Chinese localization for Flux LoRA Bot (简体中文)
+
+welcome = "欢迎使用 Flux LoRA 图片生成 Bot！\n发送图片进行描述和生成，或直接发送描述文本生成图片。\n使用 /balance 查看余额。\n使用 /loras 查看可用风格。\n使用 /myconfig 查看或修改您的生成参数。\n使用 /version 查看版本信息。"
+help_title = "*欢迎使用 Flux LoRA 图片生成 Bot*！ 🎨"
+help_usage = "你可以通过以下方式使用我："
+help_usage_image = "1\\.  *发送图片*：我会自动描述这张图片，然后你可以确认或修改描述，并选择 LoRA 风格来生成新的图片。"
+help_usage_text = "2\\.  *直接发送文本描述*：我会直接使用你的文本作为提示词 \\(Prompt\\)，让你选择 LoRA 风格并生成图片。"
+help_commands_title = "*可用命令*:"
+help_command_start = "/start \\- 显示欢迎信息"
+help_command_help = "/help \\- 显示此帮助信息"
+help_command_loras = "/loras \\- 查看你当前可用的 LoRA 风格列表"
+help_command_myconfig = "/myconfig \\- 查看和修改你的个性化图片生成参数（尺寸、步数等）"
+help_command_balance = "/balance \\- 查询你当前的生成点数余额 \\(如果启用了此功能\\)"
+help_command_version = "/version \\- 查看当前 Bot 的版本信息"
+help_command_cancel = "/cancel \\- 取消当前操作"
+help_command_set = "/set \\- (管理员) 管理用户组和Lora权限"
+help_flow_title = "*生成流程*:"
+help_flow_step1 = "\\- 发送图片或文本后，我会提示你选择 LoRA 风格。"
+help_flow_step2 = "\\- 点击 LoRA 名称按钮进行选择/取消选择。"
+help_flow_step3 = "\\- 选择完毕后，点击\"下一步\"或\"生成图片\"按钮。"
+help_flow_step4 = "\\- 生成过程可能需要一些时间，请耐心等待。"
+help_tips_title = "*提示*:"
+help_tip1 = "\\- 高质量、清晰的描述有助于生成更好的图片。"
+help_tip2 = "\\- 尝试不同的 LoRA 风格组合！"
+help_enjoy = "祝你使用愉快！✨"
+
+command_desc_start = "显示欢迎消息"  # 示例翻译，请修改
+command_desc_help = "显示帮助信息"   # 示例翻译，请修改
+command_desc_loras = "查看可用LoRA风格" # 示例翻译，请修改
+command_desc_myconfig = "查看或修改配置" # 示例翻译，请修改
+command_desc_balance = "查询余额"       # 示例翻译，请修改
+command_desc_version = "显示版本信息"   # 示例翻译，请修改
+command_desc_cancel = "取消当前操作"   # 示例翻译，请修改
+command_desc_set = "(管理员)用户和权限管理" # 示例翻译，请修改
+
+
+balance_current = "您当前的余额是: {{.balance}} 点"
+balance_not_enabled = "未启用余额功能。"
+balance_admin_checking = "你是管理员，正在获取实际余额..."
+balance_admin_fetch_failed = "获取余额失败。{{.error}}"
+balance_admin_actual = "您实际的账户余额是: {{.balance}} USD"
+
+loras_available_title = "可用的 LoRA 风格:"
+loras_item = "- `{{.name}}`"
+loras_none_available = "当前没有可用的 LoRA 风格。"
+loras_base_title_admin = "\nBase LoRA 风格 (仅管理员可见):"
+
+version_info = "当前版本: {{.version}}\n构建日期: {{.buildDate}}\nGo 版本: {{.goVersion}}"
+
+myconfig_command_admin_only = "只有管理员才能使用此命令。"
+myconfig_command_dev = "管理员设置功能正在开发中..."
+
+cancel_success = "✅ 当前操作已取消。"
+cancel_failed = "当前没有进行中的操作可以取消。"
+cancel_state_success = "✅ 操作已取消。"
+
+unknown_command = "未知命令。"
+
+photo_process_fail_no_data = "⚠️ 无法处理图片：未找到图片数据。"
+photo_submit_captioning = "⏳ 正在提交图片进行描述..."
+photo_fail_send_wait_msg = "发送初始等待消息失败（用于描述）"
+photo_caption_fail = "❌ 获取图片描述失败: {{.error}}"
+photo_caption_timeout = "❌ 获取图片描述超时，请稍后重试。"
+photo_polling_fail = "轮询/描述失败"
+photo_caption_submitted = "⏳ 图片描述任务已提交 (ID: ...{{.reqID}})。正在等待结果..."
+photo_caption_received_prompt = "✅ 图片描述获取成功:\n```\n{{.caption}}\n```\n确认使用此描述生成图片，或取消?"
+photo_caption_confirm_button = "✅ 确认生成"
+photo_caption_cancel_button = "❌ 取消"
+photo_fail_send_keyboard = "发送描述结果和确认键盘失败"
+
+text_prompt_received = "⏳ 收到！请为您的提示词选择 LoRA 风格..."
+text_fail_send_wait_msg = "发送文本提示的初始等待消息失败"
+text_warn_keyboard_new_msg = "无法发送等待消息，将键盘作为新消息发送"
+
+callback_error_nil_message = "错误：无法处理此操作。"
+callback_error_state_expired = "⏳ 操作已过期或无效，请重新开始。"
+callback_error_state_missing_context = "内部状态错误，请重试。"
+
+lora_select_invalid_id = "错误：无效的 LoRA 选择"
+lora_select_standard_selected = "已选标准: {{.selection}}"
+lora_select_standard_none_selected = "请选择至少一个标准 LoRA"
+lora_select_standard_done_prompt = "请选择一个 Base LoRA (可选)"
+lora_select_standard_error_none_selected = "请至少选择一个标准 LoRA！"
+lora_select_cancel_success = "操作已取消"
+lora_select_unknown_action = "未知操作"
+
+base_lora_select_invalid_id = "错误：无效的 Base LoRA 选择"
+base_lora_select_deselected = "已取消选择 Base LoRA"
+base_lora_select_selected = "已选 Base: {{.name}}"
+base_lora_skip_success = "已跳过选择 Base LoRA"
+base_lora_confirm_error_no_standard = "错误：没有选择任何标准 LoRA。"
+base_lora_confirm_submitting = "正在提交生成请求..."
+base_lora_confirm_prep_text = "⏳ 准备生成 {{.count}} 个组合...\n标准 LoRA: `{{.standardLoras}}`"
+base_lora_confirm_prep_text_with_base = "⏳ 准备生成 {{.count}} 个组合...\n标准 LoRA: `{{.standardLoras}}`\nBase LoRA: `{{.baseLora}}`"
+base_lora_confirm_prompt = "Prompt: ```\n{{.prompt}}\n```"
+base_lora_cancel_success = "操作已取消"
+
+unhandled_action_warning = "收到未处理操作的回调"
+unhandled_state_error = "未知状态或操作"
+
+config_callback_error_get_config = "❌ 获取配置出错"
+config_callback_select_image_size = "选择图片尺寸"
+config_callback_prompt_image_size = "请选择新的图片尺寸:"
+config_callback_button_back_main = "返回配置主菜单"
+config_callback_prompt_inf_steps = "请输入您想要的推理步数 (1-50 之间的整数)。\n发送其他任何文本或使用 /cancel 将取消设置。"
+config_callback_label_inf_steps = "请输入推理步数 (1-50)"
+config_callback_button_cancel_input = "❌ 取消设置"
+config_callback_prompt_guid_scale = "请输入您想要的 Guidance Scale (0-15 之间的数字，例如 7.5)。\n发送其他任何文本或使用 /cancel 将取消设置。"
+config_callback_label_guid_scale = "请输入 Guidance Scale (0-15)"
+config_callback_prompt_num_images = "请输入您想要的每次生成图片的数量 (1-10 之间的整数)。\n发送其他任何文本或使用 /cancel 将取消设置。"
+config_callback_label_num_images = "请输入生成数量 (1-10)"
+config_callback_reset_fail = "❌ 重置配置失败"
+config_callback_reset_success = "✅ 配置已恢复为默认设置"
+config_callback_back_main_label = "返回主菜单"
+config_callback_cancel_input_label = "取消输入"
+config_callback_image_size_invalid = "无效的尺寸"
+config_callback_image_size_success = "✅ 图片尺寸已设为 {{.size}}"
+config_callback_image_size_fail = "❌ 更新图片尺寸失败"
+config_callback_unhandled = "未知配置操作"
+
+myconfig_error_get_config = "获取您的配置时出错，请稍后再试。"
+myconfig_current_custom_settings = "您当前的个性化生成设置:"
+myconfig_current_default_settings = "您当前使用的是默认生成设置:"
+myconfig_setting_image_size = "\n- 图片尺寸: `{{.value}}`"
+myconfig_setting_inf_steps = "\n- 推理步数: `{{.value}}`"
+myconfig_setting_guid_scale = "\n- Guidance Scale: `{{.value}}`"
+myconfig_setting_num_images = "\n- 生成数量: `{{.value}}`"
+myconfig_button_set_image_size = "设置图片尺寸"
+myconfig_button_set_inf_steps = "设置推理步数"
+myconfig_button_set_guid_scale = "设置 Guidance Scale"
+myconfig_button_set_num_images = "设置生成数量"
+myconfig_button_reset_defaults = "恢复默认设置"
+
+lora_selection_keyboard_prompt = "请选择您想使用的标准 LoRA 风格"
+lora_selection_keyboard_selected = " (已选: `{{.selection}}`)"
+lora_selection_keyboard_prompt_suffix = ":\nPrompt: ```\n{{.prompt}}\n```"
+lora_selection_keyboard_none_available = "无可用 LoRA 风格"
+lora_selection_keyboard_next_button = "➡️ 下一步: 选择 Base LoRA"
+lora_selection_keyboard_cancel_button = "❌ 取消"
+
+base_lora_selection_keyboard_selected_standard = "已选标准 LoRA: `{{.selection}}`\n"
+base_lora_selection_keyboard_prompt = "请选择 **最多一个** Base LoRA (可选):\n"
+base_lora_selection_keyboard_current_base = "\n当前 Base LoRA: `{{.name}}`"
+base_lora_selection_keyboard_none_available = "(无可用 Base LoRA)"
+base_lora_selection_keyboard_skip_button = "➡️ 跳过 Base LoRA"
+base_lora_selection_keyboard_skipped_button = "➡️ (已跳过)"
+base_lora_selection_keyboard_deselect_button = "❌ 取消选择 Base LoRA"
+base_lora_selection_keyboard_confirm_button = "✅ 确认生成"
+base_lora_selection_keyboard_cancel_button = "🚫 取消"
+
+generate_error_invalid_state = "❌ 生成失败：内部状态错误，请重试。"
+generate_error_no_standard_lora = "❌ 生成失败：没有选择任何标准 LoRA。"
+generate_error_insufficient_balance = "💰 余额不足。需要 {{.cost}} 点，当前 {{.current}} 点。"
+generate_error_insufficient_balance_multi = "💰 余额不足。需要 {{.cost}} 才能生成 {{.count}} 个组合"
+generate_submit_multi = "⏳ 正在为 {{.count}} 个 LoRA 组合提交生成任务..."
+generate_error_find_lora = "❌ 内部错误：找不到标准 LoRA '{{.name}}' 的配置"
+generate_deduction_fail = "❌ 扣费失败 (LoRA: {{.name}})"
+generate_deduction_fail_error = "❌ 扣费失败 (LoRA: {{.name}}): {{.error}}"
+generate_submit_fail = "❌ 提交失败 ({{.loras}}): {{.error}}"
+generate_poll_timeout = "❌ 获取结果超时 ({{.loras}}, ID: ...{{.reqID}})"
+generate_poll_error_422 = "❌ API 错误 ({{.loras}}): 422 - 无效组合?"
+generate_poll_error_422_detail = "❌ API 错误 ({{.loras}}): 422 - 无效组合? ({{.detail}})"
+generate_poll_fail = "❌ 获取结果失败 ({{.loras}}, ID: ...{{.reqID}}): {{.error}}"
+generate_status_update = "⏳ {{.completed}} / {{.total}} 个 LoRA 组合完成..."
+generate_result_empty = "内部错误：收到空结果 (LoRA: {{.loras}})"
+generate_caption_prompt = "📝 Prompt: ```\n{{.prompt}}\n```\n---\n"
+generate_caption_success = "✅ {{.count}} 个组合成功: {{.names}}\n"
+generate_caption_success_unknown = "`(未知组合)`"
+generate_caption_failed = "⚠️ {{.count}} 个组合失败/跳过: {{.summaries}}\n"
+generate_caption_failed_unknown = "(未知错误)"
+generate_caption_duration = "⏱️ 总耗时: {{.duration}}s"
+generate_caption_balance = "\n💰 余额: {{.balance}}"
+generate_error_send_photo = "发送单张合并照片失败"
+generate_error_send_caption = "在媒体组之前发送标题失败"
+generate_error_send_media_chunk = "发送图片组块失败"
+generate_error_send_media_final = "发送最终图片组失败"
+generate_error_delete_status = "发送结果后删除原始状态消息失败"
+generate_warn_send_failed = "✅ {{.count}} 张图片生成完成, 但发送图片失败: {{.error}}\n\n{{.caption}}"
+generate_error_all_failed = "❌ 所有 LoRA 组合生成失败。"
+generate_error_all_failed_details = "\n\n失败详情:"
+generate_error_all_failed_item = "\n- {{.error}}"
+
+unauthorized_user_message = "抱歉，您无权使用此机器人。"
+unauthorized_user_callback = "无权操作"
+
+error_generic = "❌ 处理您的请求时发生内部错误，请稍后再试或联系管理员。"
+error_panic_admin = "☢️ PANIC RECOVERED ☢️\n用户: {{.userID}}\n错误: {{.error}}\n\nTraceback:\n```\n{{.stack}}\n```"
+
+config_callback_prompt_language = "请选择您的偏好语言:"
+config_callback_label_language = "选择语言"
+config_callback_button_set_language = "设置语言"
+config_callback_lang_updated = "✅ 语言已设为 {{.langName}} ({{.langCode}})"
+config_callback_lang_update_fail = "❌ 更新语言偏好失败"
+myconfig_setting_language = "\n- 语言: `{{.value}}`"
+myconfig_setting_language_default = "\n- 语言: `{{.value}}` (默认)"
+
+button_checkmark = "✅"
+button_arrow_right = "➡️"
+button_cross_mark = "❌"
+button_no_entry = "🚫"
+
+# Keyboard specific buttons
+keyboard_button_lora_done = "✅ 完成选择并生成"
+keyboard_button_caption_confirm = "✅ 使用此描述"
+
+config_update_success = "✅ 配置更新成功！"
+
+config_callback_lang_invalid = "选择的语言无效。"
+
+[config_invalid_input_int_range]
+# description = "无效整数输入范围的错误消息" # Optional description added
+one = "⚠️ 无效输入。请输入 {{.min}} 到 {{.max}} 之间的整数。"
+other = "⚠️ 无效输入。请输入 {{.min}} 到 {{.max}} 之间的整数。"
+
+[config_invalid_input_float_range]
+# description = "无效浮点数输入范围的错误消息" # Optional description added
+one = "⚠️ 无效输入。请输入 {{.min}} 到 {{.max}} 之间的数字 (例如 7.0)。"
+other = "⚠️ 无效输入。请输入 {{.min}} 到 {{.max}} 之间的数字 (例如 7.0)。"

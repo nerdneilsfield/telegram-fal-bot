@@ -22,6 +22,7 @@ type UserGenerationConfig struct {
 	NumInferenceSteps *int           `json:"num_inference_steps,omitempty"` // 使用指针以区分未设置和 0
 	GuidanceScale     *float64       `json:"guidance_scale,omitempty"`      // 使用指针以区分未设置和 0
 	NumImages         *int           `json:"num_images,omitempty"`          // 使用指针以区分未设置和 0
+	Language          *string        `json:"language,omitempty"`            // 用户的语言偏好设置, 使用指针以区分未设置
 	CreatedAt         time.Time      // GORM 会自动处理
 	UpdatedAt         time.Time      // GORM 会自动处理
 	DeletedAt         gorm.DeletedAt `gorm:"index"` // 支持软删除 (可选)

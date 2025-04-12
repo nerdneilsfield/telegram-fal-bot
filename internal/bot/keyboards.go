@@ -4,10 +4,11 @@ import (
 	"fmt"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/nerdneilsfield/telegram-fal-bot/internal/i18n"
 )
 
 // 为选择 LoRA 创建键盘
-func CreateLoraSelectionKeyboard(loras []LoraConfig) tgbotapi.InlineKeyboardMarkup {
+func CreateLoraSelectionKeyboard(loras []LoraConfig, i18nManager *i18n.Manager, userLang *string) tgbotapi.InlineKeyboardMarkup {
 	var rows [][]tgbotapi.InlineKeyboardButton
 	var currentRow []tgbotapi.InlineKeyboardButton
 
@@ -22,21 +23,23 @@ func CreateLoraSelectionKeyboard(loras []LoraConfig) tgbotapi.InlineKeyboardMark
 			currentRow = []tgbotapi.InlineKeyboardButton{}
 		}
 	}
-	// 添加一个“完成选择”按钮
+	// 添加一个"完成选择"按钮
+	doneButtonText := i18nManager.T(userLang, "keyboard_button_lora_done")
 	rows = append(rows, tgbotapi.NewInlineKeyboardRow(
-		tgbotapi.NewInlineKeyboardButtonData("✅ 完成选择并生成", "lora_done"),
+		tgbotapi.NewInlineKeyboardButtonData(doneButtonText, "lora_done"),
 	))
 
 	return tgbotapi.NewInlineKeyboardMarkup(rows...)
 }
 
 // 为编辑/确认 Caption 创建键盘
-func CreateCaptionActionKeyboard(originalCaption string) tgbotapi.InlineKeyboardMarkup {
+func CreateCaptionActionKeyboard(originalCaption string, i18nManager *i18n.Manager, userLang *string) tgbotapi.InlineKeyboardMarkup {
 	// Callback data 格式: "caption_action:<action>"
 	// action 可以是 "confirm", "edit"
+	confirmButtonText := i18nManager.T(userLang, "keyboard_button_caption_confirm")
 	keyboard := tgbotapi.NewInlineKeyboardMarkup(
 		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData("✅ 使用此描述", "caption_action:confirm"),
+			tgbotapi.NewInlineKeyboardButtonData(confirmButtonText, "caption_action:confirm"),
 			// tgbotapi.NewInlineKeyboardButtonData("✏️ 编辑描述", "caption_action:edit"), // 编辑功能实现较复杂，先只做确认
 		),
 	)

@@ -12,6 +12,9 @@ telegramAPIURL = "https://api.telegram.org/bot%s/%s"
 # Required: Path for the SQLite database file to store user balances, etc.
 dbPath = "botdata.db"
 
+# Required: Default language for the bot.
+defaultLanguage = "zh"
+
 # --- Log Configuration ---
 [logConfig]
   # Logging level: "debug", "info", "warn", "error"
