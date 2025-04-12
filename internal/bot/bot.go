@@ -18,7 +18,7 @@ import (
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"go.uber.org/zap"
-	"gorm.io/gorm" // Add gorm import if not already present
+	// Add gorm import if not already present
 )
 
 func StartBot(config *cfg.Config, version string, buildDate string) {
@@ -28,26 +28,41 @@ func StartBot(config *cfg.Config, version string, buildDate string) {
 		panic(fmt.Sprintf("Logger not initialized: %v", err))
 	}
 
-	// Initialize Database connection early
-	var db *gorm.DB
-	db, err = storage.InitDB(config.DBPath)
-	if err != nil {
-		logger.Fatal("Failed to initialize database", zap.Error(err), zap.String("dbPath", config.DBPath))
-	}
-	logger.Info("Database connection established and migrations run.")
+	logger.Info("Starting Telegram Bot...")
 
-	// Initialize Bot API
-	bot, err := tgbotapi.NewBotAPIWithAPIEndpoint(config.BotToken, config.TelegramAPIURL)
+	// Initialize Database
+	db, err := storage.InitDB(config.DBPath)
 	if err != nil {
-		logger.Fatal("Failed to create bot API", zap.Error(err))
+		logger.Fatal("Failed to initialize database", zap.Error(err))
 	}
-	bot.Debug = false
+	logger.Info("Database initialized successfully")
+
+	// Initialize Fal API Client
+	falClient, err := fapi.NewClient(
+		config.FalAIKey,
+		config.APIEndpoints.BaseURL,
+		config.APIEndpoints.FluxLora,
+		config.APIEndpoints.FlorenceCaption,
+		logger,
+	)
+	if err != nil {
+		logger.Fatal("Failed to initialize Fal API client", zap.Error(err))
+	}
+	logger.Info("Fal API Client initialized successfully")
+
+	// Initialize Telegram Bot API
+	bot, err := tgbotapi.NewBotAPI(config.BotToken)
+	if err != nil {
+		logger.Fatal("Failed to create Bot API", zap.Error(err))
+	}
+	bot.Debug = false // Disable debug logging for the bot library unless needed
 	logger.Info("Authorized on account", zap.String("username", bot.Self.UserName))
 
 	// Set bot commands
 	commands := []tgbotapi.BotCommand{
 		{Command: "start", Description: "开始使用 Bot"},
 		{Command: "help", Description: "获取帮助信息"},
+		{Command: "cancel", Description: "取消当前操作"},
 		{Command: "balance", Description: "查询余额"},
 		{Command: "loras", Description: "查看可用风格"},
 		{Command: "version", Description: "查看版本信息"},
@@ -61,15 +76,20 @@ func StartBot(config *cfg.Config, version string, buildDate string) {
 		logger.Info("Successfully set bot commands")
 	}
 
-	// Initialize dependencies
-	falClient := fapi.NewClient(config)
-	authorizer := auth.NewAuthorizer(config.Auth.AuthorizedUserIDs, config.Admins.AdminUserIDs)
+	// Initialize State Manager
 	stateManager := NewStateManager()
+
+	// Initialize Authorizer
+	authorizer := auth.NewAuthorizer(config.Auth.AuthorizedUserIDs, config.Admins.AdminUserIDs)
+	logger.Info("Authorizer initialized")
+
+	// Initialize Balance Manager (if configured)
 	var balanceManager *storage.GormBalanceManager
 	if config.Balance.CostPerGeneration > 0 { // Enable balance manager only if cost is configured
-		// Database is already initialized above
 		balanceManager = storage.NewGormBalanceManager(db, config.Balance.InitialBalance, config.Balance.CostPerGeneration)
-		logger.Info("Balance management enabled", zap.Float64("initial", config.Balance.InitialBalance), zap.Float64("cost", config.Balance.CostPerGeneration))
+		logger.Info("Balance Manager initialized", zap.Float64("initial", config.Balance.InitialBalance), zap.Float64("cost", config.Balance.CostPerGeneration))
+	} else {
+		logger.Info("Balance Manager is disabled")
 	}
 
 	// Initialize LoRA configurations (assuming GenerateLoraConfig is defined elsewhere)

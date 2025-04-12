@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http" // Ensure net/http is imported
-	"strings"
+	"net/url"  // Import net/url
 	"time"
 
 	"go.uber.org/zap"
@@ -88,38 +88,38 @@ type ImageInfo struct {
 
 // --- API Call Functions ---
 
-// SubmitGenerationRequest submits the task and returns the request ID.
-func (c *Client) SubmitGenerationRequest(prompt string, loraWeights []LoraWeight, loraNames []string, imageSize string, numInferenceSteps int, guidanceScale float64) (string, error) {
-	c.logger.Debug("Submitting generation request", zap.String("prompt", prompt), zap.Strings("loraNames", loraNames))
-	// Construct the payload using the full schema
-	payload := GenerateRequest{
-		Prompt: prompt,
-		// Assuming loraID is the 'path' for a LoraWeight object
-		Loras:     loraWeights,
-		NumImages: 1, // Default or make configurable
-		// Set other parameters as needed from config or defaults
-		ImageSize:           imageSize, // Example default
-		NumInferenceSteps:   numInferenceSteps,
-		GuidanceScale:       guidanceScale,
-		EnableSafetyChecker: false,  // Explicitly set safety checker to false
-		OutputFormat:        "jpeg", // Explicitly set output format to jpeg
+// SubmitGenerationRequest submits a generation request to the Fal API.
+// It now includes numImages as a parameter.
+func (c *Client) SubmitGenerationRequest(prompt string, loras []LoraWeight, loraNames []string, imageSize string, numInferenceSteps int, guidanceScale float64, numImages int) (string, error) {
+	requestURL := c.generateURL // Use the correct endpoint URL from client
+
+	payload := map[string]interface{}{
+		"prompt":                prompt,
+		"loras":                 loras,
+		"image_size":            imageSize,
+		"num_inference_steps":   numInferenceSteps,
+		"guidance_scale":        guidanceScale,
+		"enable_safety_checker": false,
+		"num_images":            numImages, // Include numImages in payload
 	}
-	// Adjust the URL to the base queue endpoint
-	// Example: c.generateURL = "https://queue.fal.run/fal-ai/flux-lora"
-	respBody, err := c.doPostRequest(c.generateURL, payload)
+
+	// Use the helper doPostRequest for consistency
+	c.logger.Debug("Submitting generation request", zap.String("request_url", requestURL))
+	respBody, err := c.doPostRequest(requestURL, payload)
 	if err != nil {
-		// Check if the error is due to status code >= 400, which might contain SubmitResponse format
-		// Try to unmarshal into SubmitResponse even on error for potential request_id
+		// Attempt to parse SubmitResponse even on error to potentially get RequestID
 		var submitResp SubmitResponse
 		if json.Unmarshal(respBody, &submitResp) == nil && submitResp.RequestID != "" {
-			// If we got a request ID despite the HTTP error, maybe the submission partially worked?
-			// Or maybe the error response *is* the SubmitResponse format.
-			// Log this unusual case but return the ID if present.
 			c.logger.Warn("Warning: Received HTTP error but parsed request_id", zap.String("request_id", submitResp.RequestID), zap.Error(err))
-			return submitResp.RequestID, nil // Return ID but maybe log the original error
+			// Log LoRA names even if there was an error but we got an ID
+			c.logger.Info("Generation request likely submitted despite error",
+				zap.String("request_id", submitResp.RequestID),
+				zap.Strings("lora_names_used", loraNames),
+				zap.Int("num_images_requested", numImages),
+			)
+			return submitResp.RequestID, nil
 		}
-		// If unmarshal fails or no ID, return original error
-		return "", fmt.Errorf("generation submission failed: %w", err)
+		return "", fmt.Errorf("generation submission failed: %w", err) // Return original error if no ID
 	}
 
 	var response SubmitResponse
@@ -131,14 +131,27 @@ func (c *Client) SubmitGenerationRequest(prompt string, loraWeights []LoraWeight
 		return "", fmt.Errorf("request_id not found in submission response: %s", string(respBody))
 	}
 
+	// Log successful submission details
+	c.logger.Info("Generation request submitted successfully",
+		zap.String("request_id", response.RequestID),
+		zap.Strings("lora_names_used", loraNames),
+		zap.Int("num_images_requested", numImages),
+	)
+
 	return response.RequestID, nil
 }
 
 // GetRequestStatus polls the status endpoint.
 func (c *Client) GetRequestStatus(requestID, modelEndpoint string) (*StatusResponse, error) {
-	// Construct the status URL: modelEndpoint + "/requests/" + requestID + "/status"
-	// Ensure modelEndpoint doesn't have trailing slash
-	statusURL := fmt.Sprintf("%s/requests/%s/status", strings.TrimSuffix(modelEndpoint, "/"), requestID)
+	// Construct the status URL using url.JoinPath for correctness
+	statusURL, err := url.JoinPath(c.baseURL, modelEndpoint, "requests", requestID, "status")
+	if err != nil {
+		// Although JoinPath rarely errors with valid inputs, handle it just in case
+		return nil, fmt.Errorf("failed to construct status URL: %w", err)
+	}
+
+	// Log the URL being requested for debugging
+	c.logger.Debug("Requesting status from URL", zap.String("status_url", statusURL))
 
 	req, err := http.NewRequest("GET", statusURL, nil)
 	if err != nil {
@@ -176,8 +189,11 @@ func (c *Client) GetRequestStatus(requestID, modelEndpoint string) (*StatusRespo
 
 // GetGenerationResult fetches the final result.
 func (c *Client) GetGenerationResult(requestID, modelEndpoint string) (*GenerateResponse, error) {
-	// Construct the result URL: modelEndpoint + "/requests/" + requestID
-	resultURL := fmt.Sprintf("%s/requests/%s", strings.TrimSuffix(modelEndpoint, "/"), requestID)
+	// Construct the result URL using url.JoinPath for correctness
+	resultURL, err := url.JoinPath(c.baseURL, modelEndpoint, "requests", requestID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to construct result URL: %w", err)
+	}
 
 	req, err := http.NewRequest("GET", resultURL, nil)
 	if err != nil {

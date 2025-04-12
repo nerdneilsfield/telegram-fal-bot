@@ -5,28 +5,37 @@ import (
 	"time"
 )
 
+// UserState definition moved to types.go
+/*
 type UserState struct {
-	UserID          int64
-	ChatID          int64    // 新增：记录交互发生的聊天 ID
-	MessageID       int      // 新增：记录触发状态的相关消息 ID (用于编辑)
-	Action          string   // e.g., "awaiting_lora_selection", "awaiting_caption_edit", "awaiting_config_infsteps"
-	OriginalCaption string   // 当等待编辑/确认 caption 时，或作为文本输入的 prompt
-	ImageFileURL    string   // 当处理图片时 (可选)
-	SelectedLoras   []string // 用户已选择的 LoRA Name (注意: 不是 ID)
-	LastUpdated     time.Time
+	UserID            int64
+	ChatID            int64 // Added to store chat ID
+	MessageID         int   // Added to store the message ID of the status/keyboard message
+	Action            string // e.g., "awaiting_prompt", "awaiting_lora_selection", "awaiting_base_lora_selection", "awaiting_config_value"
+	OriginalCaption   string
+	SelectedLoras     []string // Stores NAMES of selected STANDARD LoRAs
+	SelectedBaseLoraName string   // Stores NAME of the selected SINGLE Base LoRA (or empty)
+	LastUpdated       time.Time
+	// For config updates
+	ConfigFieldToUpdate string
+	ImageFileURL      string // Store image URL if interaction started with photo
 }
+*/
 
+// StateManager manages user states concurrently and handles expiration.
 type StateManager struct {
-	states map[int64]*UserState
+	states map[int64]*UserState // Use UserState type defined in types.go
 	mu     sync.RWMutex
 }
 
+// NewStateManager creates a new StateManager.
 func NewStateManager() *StateManager {
 	return &StateManager{
 		states: make(map[int64]*UserState),
 	}
 }
 
+// SetState stores or updates a user's state.
 func (sm *StateManager) SetState(userID int64, state *UserState) {
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
@@ -34,47 +43,71 @@ func (sm *StateManager) SetState(userID int64, state *UserState) {
 	sm.states[userID] = state
 }
 
+// GetState retrieves a user's state.
 func (sm *StateManager) GetState(userID int64) (*UserState, bool) {
 	sm.mu.RLock()
 	defer sm.mu.RUnlock()
 	state, ok := sm.states[userID]
-	// (可选) 清理过期的状态
-	// if ok && time.Since(state.LastUpdated) > 30*time.Minute {
-	//     delete(sm.states, userID) // 需要写锁，或者标记为过期
-	//     return nil, false
-	// }
-	return state, ok
+	if !ok {
+		return nil, false
+	}
+	// Optional: Check for expiration here if needed
+	// if time.Since(state.LastUpdated) > StateTimeout { ... }
+	return state, true
 }
 
+// ClearState removes a user's state.
 func (sm *StateManager) ClearState(userID int64) {
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
 	delete(sm.states, userID)
 }
 
-// 添加/移除已选择的 LoRA
+// GetAction retrieves the current action for a user.
+func (sm *StateManager) GetAction(userID int64) (string, bool) {
+	state, ok := sm.GetState(userID)
+	if !ok {
+		return "", false
+	}
+	return state.Action, true
+}
+
+// ToggleLoraSelection (Keep this method, it works on state.SelectedLoras)
+// It should operate on the standard LoRA selection.
 func (sm *StateManager) ToggleLoraSelection(userID int64, loraID string) (selected []string, ok bool) {
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
 	state, exists := sm.states[userID]
-	if !exists || state.Action != "awaiting_lora_selection" { // 确保在正确的状态
-		return nil, false
+	if !exists || (state.Action != "awaiting_lora_selection" && state.Action != "awaiting_base_lora_selection") { // Allow toggling in both selection phases for flexibility? Or restrict base lora toggle later?
+		// Let's restrict for now: only allow standard lora toggling during 'awaiting_lora_selection'
+		// The base lora selection will be handled separately
+		// if !exists || state.Action != "awaiting_lora_selection" {
+		// 	 return nil, false
+		// }
+		// Re-evaluating: Callback uses Lora ID. Need a way to map ID back to Name to store in state.SelectedLoras
+		// This method seems complex if it needs BotDeps to find Lora by ID.
+		// It's simpler to handle the toggle logic directly in HandleCallbackQuery where BotDeps is available.
+		// Commenting out this method for now.
+		/*
+			// 检查 LoRA 是否已选择
+			foundIndex := -1
+			for i, id := range state.SelectedLoras { // This assumes SelectedLoras stores IDs, but it should store Names
+				if id == loraID {
+					foundIndex = i
+					break
+				}
+			}
+			if foundIndex != -1 { // 已选择，移除
+				state.SelectedLoras = append(state.SelectedLoras[:foundIndex], state.SelectedLoras[foundIndex+1:]...)
+			} else { // 未选择，添加
+				state.SelectedLoras = append(state.SelectedLoras, loraID) // Appending ID, should be Name
+			}
+			state.LastUpdated = time.Now()
+			return state.SelectedLoras, true
+		*/
+		return nil, false // Mark as unused for now
 	}
+	// Keep the logic here if needed, but ensure it uses names and handles ID->Name lookup correctly
+	return nil, false // Placeholder
 
-	// 检查 LoRA 是否已选择
-	foundIndex := -1
-	for i, id := range state.SelectedLoras {
-		if id == loraID {
-			foundIndex = i
-			break
-		}
-	}
-
-	if foundIndex != -1 { // 已选择，移除
-		state.SelectedLoras = append(state.SelectedLoras[:foundIndex], state.SelectedLoras[foundIndex+1:]...)
-	} else { // 未选择，添加
-		state.SelectedLoras = append(state.SelectedLoras, loraID)
-	}
-	state.LastUpdated = time.Now()
-	return state.SelectedLoras, true
 }

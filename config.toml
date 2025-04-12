@@ -24,10 +24,9 @@ dbPath = "botdata.db"
 # --- Fal.ai API Endpoints ---
 # Replace with the actual URLs provided by Fal.ai for the models you are using.
 [apiEndpoints]
-  # Full URL for the Florence-2 image captioning model endpoint
-  florenceCaption = "https://fal.run/fal-ai/..." # e.g., https://fal.run/fal-ai/florence-2-base-ft
-  # Full URL for the Flux LoRA image generation model endpoint
-  fluxLora = "https://fal.run/fal-ai/..."      # e.g., https://fal.run/fal-ai/flux-lora-inference
+baseURL = "https://queue.fal.run" # 或者你的 Fal 基础 URL
+fluxLora = "fal-ai/flux-lora" # Lora 端点的相对路径
+florenceCaption = "fal-ai/florence-2-base" # Caption 端点的相对路径
 
 # --- Authorization ---
 [auth]
@@ -65,6 +64,7 @@ dbPath = "botdata.db"
   imageSize = "portrait_16_9"
   numInferenceSteps = 25
   guidanceScale = 7.5
+  numImages = 1
 
 # --- Base LoRAs (Optional - Applied implicitly if logic supports it) ---
 # Define LoRAs that might be applied by default or used internally.

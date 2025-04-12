@@ -31,6 +31,7 @@ type LogConfig struct {
 }
 
 type APIEndpointsConfig struct {
+	BaseURL         string `toml:"baseURL"`
 	FlorenceCaption string `toml:"florenceCaption"`
 	FluxLora        string `toml:"fluxLora"`
 }
@@ -59,6 +60,7 @@ type GenerationConfig struct {
 	ImageSize         string  `toml:"imageSize" json:"image_size"`
 	NumInferenceSteps int     `toml:"numInferenceSteps" json:"num_inference_steps"`
 	GuidanceScale     float64 `toml:"guidanceScale" json:"guidance_scale"`
+	NumImages         int     `toml:"numImages"`
 }
 
 type UserGroup struct {
@@ -169,6 +171,9 @@ func ValidateConfig(cfg *Config) error {
 	}
 	if cfg.DefaultGenerationSettings.GuidanceScale <= 0 || cfg.DefaultGenerationSettings.GuidanceScale > 15 {
 		return fmt.Errorf("guidanceScale must be greater than 0 and less than 15")
+	}
+	if cfg.DefaultGenerationSettings.NumImages <= 0 {
+		return fmt.Errorf("numImages must be positive")
 	}
 
 	groupNames := make(map[string]struct{})

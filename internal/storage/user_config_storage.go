@@ -42,7 +42,7 @@ func SetUserGenerationConfig(db *gorm.DB, userID int64, config UserGenerationCon
 	// Prefix clause types with the package name 'clause.'
 	result := db.Clauses(clause.OnConflict{
 		Columns:   []clause.Column{{Name: "user_id"}},
-		DoUpdates: clause.AssignmentColumns([]string{"image_size", "num_inference_steps", "guidance_scale", "updated_at"}),
+		DoUpdates: clause.AssignmentColumns([]string{"image_size", "num_inference_steps", "guidance_scale", "num_images", "updated_at"}),
 	}).Create(&config)
 
 	if result.Error != nil {

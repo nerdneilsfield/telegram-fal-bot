@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math"
+	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	auth "github.com/nerdneilsfield/telegram-fal-bot/internal/auth"
@@ -23,6 +24,21 @@ type LoraConfig struct {
 	URL         string
 	Weight      float64
 	AllowGroups []string // New: List of group names allowed to access (copied from cfg.LoraConfig)
+}
+
+// UserState represents the state of a user's interaction
+type UserState struct {
+	UserID               int64
+	ChatID               int64  // Added to store chat ID
+	MessageID            int    // Added to store the message ID of the status/keyboard message
+	Action               string // e.g., "awaiting_prompt", "awaiting_lora_selection", "awaiting_base_lora_selection", "awaiting_config_value"
+	OriginalCaption      string
+	SelectedLoras        []string // Stores NAMES of selected STANDARD LoRAs
+	SelectedBaseLoraName string   // Stores NAME of the selected SINGLE Base LoRA (or empty)
+	LastUpdated          time.Time
+	// For config updates
+	ConfigFieldToUpdate string
+	ImageFileURL        string `json:"-"` // Store image URL if interaction started with photo
 }
 
 // BotDeps 包含 Bot 需要的所有依赖

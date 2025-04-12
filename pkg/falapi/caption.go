@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 )
@@ -64,7 +65,11 @@ func (c *Client) SubmitCaptionRequest(imageURL string) (string, error) {
 
 // GetCaptionResult fetches the final caption result.
 func (c *Client) GetCaptionResult(requestID, captionEndpoint string) (string, error) {
-	resultURL := fmt.Sprintf("%s/requests/%s", strings.TrimSuffix(captionEndpoint, "/"), requestID)
+	// Construct the result URL using url.JoinPath for correctness
+	resultURL, err := url.JoinPath(c.baseURL, captionEndpoint, "requests", requestID)
+	if err != nil {
+		return "", fmt.Errorf("failed to construct caption result URL: %w", err)
+	}
 
 	req, err := http.NewRequest("GET", resultURL, nil)
 	if err != nil {
