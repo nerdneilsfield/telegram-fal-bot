@@ -7,6 +7,7 @@ import (
 	"os"
 	"runtime"
 	"runtime/debug"
+	"strconv"
 	"strings"
 	"time"
 
@@ -122,6 +123,9 @@ func HandleMessage(message *tgbotapi.Message, deps BotDeps) {
 		if exists && strings.HasPrefix(state.Action, "awaiting_config_") {
 			// Let HandleConfigUpdateInput manage state clearing on completion/error
 			HandleConfigUpdateInput(message, state, deps)
+		} else if exists && strings.HasPrefix(state.Action, "awaiting_admin_balance_") {
+			// Admin is entering a balance for a user
+			HandleAdminBalanceInput(message, state, deps)
 		} else {
 			// Clear any previous state before starting a new action with text
 			deps.StateManager.ClearState(userID)
@@ -404,7 +408,7 @@ func HandleVersionCommand(chatID int64, deps BotDeps) {
 	deps.Bot.Send(reply)
 }
 
-// HandleSetCommand handles the /set command (currently placeholder).
+// HandleSetCommand handles the /set command for admin user management.
 func HandleSetCommand(message *tgbotapi.Message, deps BotDeps) {
 	userID := message.From.ID
 	chatID := message.Chat.ID
@@ -415,7 +419,53 @@ func HandleSetCommand(message *tgbotapi.Message, deps BotDeps) {
 		deps.Bot.Send(reply)
 		return
 	}
-	reply := tgbotapi.NewMessage(chatID, deps.I18n.T(userLang, "myconfig_command_dev"))
+
+	// Check if balance management is enabled
+	if deps.BalanceManager == nil {
+		reply := tgbotapi.NewMessage(chatID, deps.I18n.T(userLang, "balance_not_enabled"))
+		deps.Bot.Send(reply)
+		return
+	}
+
+	// Get all users with their balances
+	users, err := deps.BalanceManager.ListAllUsersWithBalances()
+	if err != nil {
+		deps.Logger.Error("Failed to list users", zap.Error(err))
+		reply := tgbotapi.NewMessage(chatID, deps.I18n.T(userLang, "error_list_users", "error", err.Error()))
+		deps.Bot.Send(reply)
+		return
+	}
+
+	if len(users) == 0 {
+		reply := tgbotapi.NewMessage(chatID, deps.I18n.T(userLang, "no_users_found"))
+		deps.Bot.Send(reply)
+		return
+	}
+
+	// Create inline keyboard with users
+	var rows [][]tgbotapi.InlineKeyboardButton
+	const maxUsersPerPage = 10
+	
+	for i, user := range users {
+		if i >= maxUsersPerPage {
+			break // Limit to first 10 users for now
+		}
+		buttonText := fmt.Sprintf("👤 %d (💰 %.2f)", user.UserID, user.Balance)
+		callbackData := fmt.Sprintf("admin_user_%d", user.UserID)
+		button := tgbotapi.NewInlineKeyboardButtonData(buttonText, callbackData)
+		rows = append(rows, []tgbotapi.InlineKeyboardButton{button})
+	}
+
+	keyboard := tgbotapi.NewInlineKeyboardMarkup(rows...)
+	
+	msgText := deps.I18n.T(userLang, "admin_user_list_title", "count", len(users))
+	if len(users) > maxUsersPerPage {
+		msgText += fmt.Sprintf("\n%s", deps.I18n.T(userLang, "admin_user_list_truncated", "shown", maxUsersPerPage, "total", len(users)))
+	}
+	
+	reply := tgbotapi.NewMessage(chatID, msgText)
+	reply.ReplyMarkup = keyboard
+	reply.ParseMode = tgbotapi.ModeMarkdown
 	deps.Bot.Send(reply)
 }
 
@@ -607,4 +657,75 @@ func HandleShortLogCommand(chatID int64, userID int64, deps BotDeps) {
 		errorMsg := deps.I18n.T(userLang, "log_send_error", "error", err.Error())
 		deps.Bot.Send(tgbotapi.NewMessage(chatID, errorMsg))
 	}
+}
+
+// HandleAdminBalanceInput handles text input when admin is setting a user's balance
+func HandleAdminBalanceInput(message *tgbotapi.Message, state *UserState, deps BotDeps) {
+	userID := message.From.ID
+	chatID := message.Chat.ID
+	inputText := message.Text
+	userLang := getUserLanguagePreference(userID, deps)
+
+	// Check if user is still admin
+	if !deps.Authorizer.IsAdmin(userID) {
+		deps.Bot.Send(tgbotapi.NewMessage(chatID, deps.I18n.T(userLang, "myconfig_command_admin_only")))
+		deps.StateManager.ClearState(userID)
+		return
+	}
+
+	// Extract target user ID from state action
+	// Action format: "awaiting_admin_balance_123456"
+	parts := strings.Split(state.Action, "_")
+	if len(parts) != 4 {
+		deps.Logger.Error("Invalid admin balance state action", zap.String("action", state.Action))
+		deps.Bot.Send(tgbotapi.NewMessage(chatID, deps.I18n.T(userLang, "error_generic")))
+		deps.StateManager.ClearState(userID)
+		return
+	}
+
+	targetUserID, err := strconv.ParseInt(parts[3], 10, 64)
+	if err != nil {
+		deps.Logger.Error("Failed to parse target user ID from state", zap.Error(err), zap.String("action", state.Action))
+		deps.Bot.Send(tgbotapi.NewMessage(chatID, deps.I18n.T(userLang, "error_generic")))
+		deps.StateManager.ClearState(userID)
+		return
+	}
+
+	// Parse the new balance
+	newBalance, err := strconv.ParseFloat(inputText, 64)
+	if err != nil || newBalance < 0 {
+		// Invalid input
+		deps.Bot.Send(tgbotapi.NewMessage(chatID, "❌ Invalid balance. Please enter a positive number (e.g., 100.50)"))
+		return // Don't clear state, let user try again
+	}
+
+	// Set the new balance
+	if deps.BalanceManager == nil {
+		deps.Bot.Send(tgbotapi.NewMessage(chatID, deps.I18n.T(userLang, "balance_not_enabled")))
+		deps.StateManager.ClearState(userID)
+		return
+	}
+
+	err = deps.BalanceManager.SetBalance(targetUserID, newBalance)
+	if err != nil {
+		deps.Logger.Error("Failed to set user balance", zap.Error(err), zap.Int64("target_user", targetUserID), zap.Float64("new_balance", newBalance))
+		deps.Bot.Send(tgbotapi.NewMessage(chatID, fmt.Sprintf("❌ Failed to set balance: %v", err)))
+		deps.StateManager.ClearState(userID)
+		return
+	}
+
+	// Success
+	successMsg := fmt.Sprintf("✅ Successfully set balance for user %d to %.2f", targetUserID, newBalance)
+	deps.Bot.Send(tgbotapi.NewMessage(chatID, successMsg))
+	deps.Logger.Info("Admin set user balance", zap.Int64("admin_id", userID), zap.Int64("target_user", targetUserID), zap.Float64("new_balance", newBalance))
+
+	// Clear state
+	deps.StateManager.ClearState(userID)
+
+	// Show user list again
+	syntheticMsg := &tgbotapi.Message{
+		From: message.From,
+		Chat: message.Chat,
+	}
+	HandleSetCommand(syntheticMsg, deps)
 }

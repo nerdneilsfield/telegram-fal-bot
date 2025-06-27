@@ -184,3 +184,70 @@ func (bm *SQLBalanceManager) AddBalance(userID int64, amount float64) error {
 	zap.L().Info("Added balance for user", zap.Int64("user_id", userID), zap.Float64("amount", amount), zap.Float64("new_balance", newBalance))
 	return nil
 }
+
+// SetBalance sets the balance for a user to a specific amount (admin function)
+func (bm *SQLBalanceManager) SetBalance(userID int64, balance float64) error {
+	if balance < 0 {
+		return fmt.Errorf("balance cannot be negative")
+	}
+
+	bm.mu.Lock()
+	defer bm.mu.Unlock()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	// Upsert the balance directly
+	upsertSQL := `
+		INSERT INTO user_balances (user_id, balance, created_at, updated_at)
+		VALUES (?, ?, ?, ?)
+		ON CONFLICT(user_id) DO UPDATE SET
+			balance = excluded.balance,
+			updated_at = excluded.updated_at;`
+	now := time.Now()
+	_, err := bm.db.ExecContext(ctx, upsertSQL, userID, balance, now, now)
+	if err != nil {
+		return fmt.Errorf("failed to set user balance: %w", err)
+	}
+
+	zap.L().Info("Set balance for user", zap.Int64("user_id", userID), zap.Float64("balance", balance))
+	return nil
+}
+
+// UserBalance represents a user's balance information
+type UserBalanceInfo struct {
+	UserID    int64
+	Balance   float64
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
+// ListAllUsersWithBalances returns all users with their current balances
+func (bm *SQLBalanceManager) ListAllUsersWithBalances() ([]UserBalanceInfo, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	query := `SELECT user_id, balance, created_at, updated_at FROM user_balances ORDER BY user_id`
+	rows, err := bm.db.QueryContext(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query user balances: %w", err)
+	}
+	defer rows.Close()
+
+	var users []UserBalanceInfo
+	for rows.Next() {
+		var user UserBalanceInfo
+		err := rows.Scan(&user.UserID, &user.Balance, &user.CreatedAt, &user.UpdatedAt)
+		if err != nil {
+			zap.L().Error("Failed to scan user balance row", zap.Error(err))
+			continue
+		}
+		users = append(users, user)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating user balances: %w", err)
+	}
+
+	return users, nil
+}

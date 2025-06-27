@@ -39,6 +39,12 @@ func HandleCallbackQuery(callbackQuery *tgbotapi.CallbackQuery, deps BotDeps) {
 
 	answer := tgbotapi.NewCallback(callbackQuery.ID, "") // Prepare default answer
 
+	// --- Admin User Management Callbacks ---
+	if strings.HasPrefix(data, "admin_") {
+		HandleAdminCallback(callbackQuery, deps)
+		return
+	}
+
 	// --- Configuration Callbacks ---
 	if strings.HasPrefix(data, "config_") {
 		HandleConfigCallback(callbackQuery, deps)
@@ -822,4 +828,128 @@ func HandleConfigUpdateInput(message *tgbotapi.Message, state *UserState, deps B
 		HandleMyConfigCommand(syntheticMsg, deps) // Call the function that SENDS the config message
 	}
 	deps.StateManager.ClearState(userID) // Clear state after successful update or unrecoverable error
+}
+
+// HandleAdminCallback handles admin-related callback queries for user management
+func HandleAdminCallback(callbackQuery *tgbotapi.CallbackQuery, deps BotDeps) {
+	userID := callbackQuery.From.ID
+	var chatID int64
+	var messageID int
+	if callbackQuery.Message != nil {
+		chatID = callbackQuery.Message.Chat.ID
+		messageID = callbackQuery.Message.MessageID
+	} else {
+		deps.Logger.Error("Admin callback query message is nil", zap.Int64("user_id", userID), zap.String("data", callbackQuery.Data))
+		answer := tgbotapi.NewCallback(callbackQuery.ID, deps.I18n.T(nil, "callback_error_nil_message"))
+		deps.Bot.Request(answer)
+		return
+	}
+	data := callbackQuery.Data
+	userLang := getUserLanguagePreference(userID, deps)
+
+	// Check if user is admin
+	if !deps.Authorizer.IsAdmin(userID) {
+		answer := tgbotapi.NewCallback(callbackQuery.ID, deps.I18n.T(userLang, "myconfig_command_admin_only"))
+		deps.Bot.Request(answer)
+		return
+	}
+
+	answer := tgbotapi.NewCallback(callbackQuery.ID, "")
+
+	// Handle different admin actions
+	if strings.HasPrefix(data, "admin_user_") {
+		// Extract target user ID
+		targetUserIDStr := strings.TrimPrefix(data, "admin_user_")
+		targetUserID, err := strconv.ParseInt(targetUserIDStr, 10, 64)
+		if err != nil {
+			deps.Logger.Error("Failed to parse target user ID", zap.Error(err), zap.String("data", data))
+			answer.Text = deps.I18n.T(userLang, "admin_invalid_user_id")
+			deps.Bot.Request(answer)
+			return
+		}
+
+		// Get current balance
+		var currentBalance float64
+		if deps.BalanceManager != nil {
+			currentBalance = deps.BalanceManager.GetBalance(targetUserID)
+		}
+
+		// Show options for this user
+		keyboard := tgbotapi.NewInlineKeyboardMarkup(
+			tgbotapi.NewInlineKeyboardRow(
+				tgbotapi.NewInlineKeyboardButtonData(
+					fmt.Sprintf("💰 Set Balance (Current: %.2f)", currentBalance),
+					fmt.Sprintf("admin_setbalance_%d", targetUserID),
+				),
+			),
+			tgbotapi.NewInlineKeyboardRow(
+				tgbotapi.NewInlineKeyboardButtonData("⬅️ Back to User List", "admin_userlist"),
+			),
+		)
+
+		msgText := fmt.Sprintf("👤 User: %d\n💰 Current Balance: %.2f\n\nSelect an action:", targetUserID, currentBalance)
+		edit := tgbotapi.NewEditMessageText(chatID, messageID, msgText)
+		edit.ReplyMarkup = &keyboard
+		edit.ParseMode = tgbotapi.ModeMarkdown
+		deps.Bot.Send(edit)
+		deps.Bot.Request(answer)
+
+	} else if strings.HasPrefix(data, "admin_setbalance_") {
+		// Set state for balance input
+		targetUserIDStr := strings.TrimPrefix(data, "admin_setbalance_")
+		targetUserID, err := strconv.ParseInt(targetUserIDStr, 10, 64)
+		if err != nil {
+			deps.Logger.Error("Failed to parse target user ID for balance set", zap.Error(err), zap.String("data", data))
+			answer.Text = deps.I18n.T(userLang, "admin_invalid_user_id")
+			deps.Bot.Request(answer)
+			return
+		}
+
+		// Set state to await balance input
+		state := &UserState{
+			UserID:        userID,
+			ChatID:        chatID,
+			MessageID:     messageID,
+			Action:        fmt.Sprintf("awaiting_admin_balance_%d", targetUserID),
+			SelectedLoras: []string{}, // Not used but required by struct
+		}
+		deps.StateManager.SetState(userID, state)
+
+		// Create cancel keyboard
+		cancelKeyboard := tgbotapi.NewInlineKeyboardMarkup(
+			tgbotapi.NewInlineKeyboardRow(
+				tgbotapi.NewInlineKeyboardButtonData("❌ Cancel", "admin_cancel_balance_input"),
+			),
+		)
+
+		promptText := fmt.Sprintf("Please enter the new balance for user %d:\n(Current balance: %.2f)", targetUserID, deps.BalanceManager.GetBalance(targetUserID))
+		edit := tgbotapi.NewEditMessageText(chatID, messageID, promptText)
+		edit.ReplyMarkup = &cancelKeyboard
+		deps.Bot.Send(edit)
+		answer.Text = "Enter new balance"
+		deps.Bot.Request(answer)
+
+	} else if data == "admin_userlist" {
+		// Show user list again
+		syntheticMsg := &tgbotapi.Message{
+			MessageID: messageID,
+			From:      callbackQuery.From,
+			Chat:      callbackQuery.Message.Chat,
+		}
+		HandleSetCommand(syntheticMsg, deps)
+		deps.Bot.Request(answer)
+
+	} else if data == "admin_cancel_balance_input" {
+		// Cancel balance input
+		deps.StateManager.ClearState(userID)
+		answer.Text = "Cancelled"
+		deps.Bot.Request(answer)
+		// Go back to user list
+		syntheticMsg := &tgbotapi.Message{
+			MessageID: messageID,
+			From:      callbackQuery.From,
+			Chat:      callbackQuery.Message.Chat,
+		}
+		HandleSetCommand(syntheticMsg, deps)
+	}
 }
