@@ -1,5 +1,39 @@
 # CLAUDE LOGS
 
+## 2025-06-27 18:10:00
+
+### Fix Missing i18n Translation Keys
+
+**Summary**: Added missing internationalization (i18n) translation keys for the admin user management feature in all supported languages (English, Chinese, Japanese).
+
+**Key Changes**:
+
+1. **Chinese translations** (`internal/i18n/locales/zh.toml`):
+   - `admin_user_list_title` - "👥 用户列表 (共 {{.count}} 个用户)"
+   - `admin_user_list_truncated` - "显示前 {{.shown}} 个用户，共 {{.total}} 个"
+   - `admin_invalid_user_id` - "❌ 无效的用户ID"
+   - `error_list_users` - "❌ 获取用户列表失败: {{.error}}"
+   - `no_users_found` - "ℹ️ 暂无用户数据"
+
+2. **English translations** (`internal/i18n/locales/en.toml`):
+   - `admin_user_list_title` - "👥 User List ({{.count}} users total)"
+   - `admin_user_list_truncated` - "Showing first {{.shown}} users of {{.total}} total"
+   - `admin_invalid_user_id` - "❌ Invalid user ID"
+   - `error_list_users` - "❌ Failed to list users: {{.error}}"
+   - `no_users_found` - "ℹ️ No users found"
+
+3. **Japanese translations** (`internal/i18n/locales/ja.toml`):
+   - `admin_user_list_title` - "👥 ユーザーリスト (計 {{.count}} 人)"
+   - `admin_user_list_truncated` - "{{.total}} 人中最初の {{.shown}} 人を表示"
+   - `admin_invalid_user_id` - "❌ 無効なユーザーID"
+   - `error_list_users` - "❌ ユーザーリストの取得に失敗しました: {{.error}}"
+   - `no_users_found` - "ℹ️ ユーザーが見つかりません"
+
+**Files Modified**:
+- `internal/i18n/locales/zh.toml`
+- `internal/i18n/locales/en.toml`
+- `internal/i18n/locales/ja.toml`
+
 ## 2025-06-27 14:45:00
 
 ### Admin User Management Feature Implementation

@@ -243,3 +243,10 @@ other = "⚠️ Invalid input. Please enter an integer between {{.min}} and {{.m
 # description = "Error message for invalid float input range" # Optional description added
 one = "⚠️ Invalid input. Please enter a number between {{.min}} and {{.max}} (e.g., 7.0)."
 other = "⚠️ Invalid input. Please enter a number between {{.min}} and {{.max}} (e.g., 7.0)."
+
+# Admin user management translations
+admin_user_list_title = "👥 User List ({{.count}} users total)"
+admin_user_list_truncated = "Showing first {{.shown}} users of {{.total}} total"
+admin_invalid_user_id = "❌ Invalid user ID"
+error_list_users = "❌ Failed to list users: {{.error}}"
+no_users_found = "ℹ️ No users found"
