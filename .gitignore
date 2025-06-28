@@ -42,3 +42,4 @@ botdata.db-wal
 # log file
 bot.log
 *.log
+test-binary

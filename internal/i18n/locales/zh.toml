@@ -223,6 +223,13 @@ log_write_error = "⚠️ 写入临时文件时出错: {{.error}}"
 log_send_error = "⚠️ 发送日志文件时出错: {{.error}}"
 shortlog_caption = "📄 日志文件的最后 {{.lines}} 行。"
 
+# Admin user management translations
+admin_user_list_title = "👥 用户列表 (共 {{.count}} 个用户)"
+admin_user_list_truncated = "显示前 {{.shown}} 个用户，共 {{.total}} 个"
+admin_invalid_user_id = "❌ 无效的用户ID"
+error_list_users = "❌ 获取用户列表失败: {{.error}}"
+no_users_found = "ℹ️ 暂无用户数据"
+
 [config_invalid_input_int_range]
 # description = "无效整数输入范围的错误消息" # Optional description added
 one = "⚠️ 无效输入。请输入 {{.min}} 到 {{.max}} 之间的整数。"
@@ -233,9 +240,3 @@ other = "⚠️ 无效输入。请输入 {{.min}} 到 {{.max}} 之间的整数�
 one = "⚠️ 无效输入。请输入 {{.min}} 到 {{.max}} 之间的数字 (例如 7.0)。"
 other = "⚠️ 无效输入。请输入 {{.min}} 到 {{.max}} 之间的数字 (例如 7.0)。"
 
-# Admin user management translations
-admin_user_list_title = "👥 用户列表 (共 {{.count}} 个用户)"
-admin_user_list_truncated = "显示前 {{.shown}} 个用户，共 {{.total}} 个"
-admin_invalid_user_id = "❌ 无效的用户ID"
-error_list_users = "❌ 获取用户列表失败: {{.error}}"
-no_users_found = "ℹ️ 暂无用户数据"

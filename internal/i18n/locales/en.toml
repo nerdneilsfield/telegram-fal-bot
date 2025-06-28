@@ -223,6 +223,13 @@ log_write_error = "⚠️ Error writing to temporary file: {{.error}}"
 log_send_error = "⚠️ Error sending log file: {{.error}}"
 shortlog_caption = "📄 Last {{.lines}} lines of the log file."
 
+# Admin user management translations
+admin_user_list_title = "👥 User List ({{.count}} users total)"
+admin_user_list_truncated = "Showing first {{.shown}} users of {{.total}} total"
+admin_invalid_user_id = "❌ Invalid user ID"
+error_list_users = "❌ Failed to list users: {{.error}}"
+no_users_found = "ℹ️ No users found"
+
 
 [MyUnreadEmails]
 description = "The number of unread emails I have"
@@ -244,9 +251,3 @@ other = "⚠️ Invalid input. Please enter an integer between {{.min}} and {{.m
 one = "⚠️ Invalid input. Please enter a number between {{.min}} and {{.max}} (e.g., 7.0)."
 other = "⚠️ Invalid input. Please enter a number between {{.min}} and {{.max}} (e.g., 7.0)."
 
-# Admin user management translations
-admin_user_list_title = "👥 User List ({{.count}} users total)"
-admin_user_list_truncated = "Showing first {{.shown}} users of {{.total}} total"
-admin_invalid_user_id = "❌ Invalid user ID"
-error_list_users = "❌ Failed to list users: {{.error}}"
-no_users_found = "ℹ️ No users found"

@@ -1,5 +1,28 @@
 # CLAUDE LOGS
 
+## 2025-06-28 02:40:00
+
+### Fix i18n Translation File Loading Error
+
+**Summary**: Fixed i18n translation file loading error caused by mixing regular keys with pluralized message keys in TOML sections.
+
+**Key Changes**:
+
+1. **Moved admin user management translation keys**:
+   - Moved admin-related keys out of the `[config_invalid_input_float_range]` pluralized section
+   - Placed them at the top level of the TOML files
+   - This resolves the error: "reserved keys [one other] mixed with unreserved keys"
+
+2. **Files Modified**:
+   - `internal/i18n/locales/zh.toml` - Moved admin keys after `shortlog_caption`
+   - `internal/i18n/locales/en.toml` - Moved admin keys after `shortlog_caption`
+   - `internal/i18n/locales/ja.toml` - Moved admin keys after `shortlog_caption`
+
+**Technical Details**:
+- go-i18n v2 requires that sections containing `one` and `other` keys (for pluralization) cannot contain any other regular keys
+- All admin user management keys are now properly placed at the top level of the TOML files
+- This ensures proper parsing and loading of all translation files
+
 ## 2025-06-27 18:10:00
 
 ### Fix Missing i18n Translation Keys
