@@ -76,7 +76,7 @@
         * `telegramAPIURL`: 除非需要自定义 Telegram API 端点，否则使用默认值。
         * `defaultLanguage`: 设置机器人回复的默认语言（例如 `"en"`, `"zh"`）。
         * `[logConfig]`: 配置日志级别、格式和可选的文件输出。
-        * `[apiEndpoints]`: 验证或更新 `baseURL`, `fluxLora`, `florenceCaption` 端点，如果它们与默认值不同。
+        * `[apiEndpoints]`: 验证或更新 `baseURL`, `fluxLora`, `florenceCaption`, `maxLoras` 端点/参数，如果它们与默认值不同。
         * `[[userGroups]]`: 如果需要基于组的 LoRA 访问控制，定义用户组并分配用户 ID。
         * `[balance]`: 如果使用余额系统，配置 `initialBalance` 和 `costPerGeneration`。
         * `[defaultGenerationSettings]`: 设置 `imageSize`, `numInferenceSteps`, `guidanceScale`, `numImages` 的全局默认值。
@@ -154,6 +154,7 @@
   * `baseURL` (字符串): Fal.ai API 的基础 URL（例如 `"https://queue.fal.run"`）。
   * `fluxLora` (字符串): 图像生成端点的相对路径/标识符（例如 `"fal-ai/flux-lora"`）。
   * `florenceCaption` (字符串): 图像描述端点的相对路径/标识符（例如 `"fal-ai/florence-2-base"`）。
+  * `maxLoras` (整数, 可选): 单次请求最多使用的 LoRA 总数 (Base + 标准)。未设置时默认 2。
 
 * **`[auth]` (授权):** 授权设置。
   * `authorizedUserIDs` ([]int64, 必需): 允许使用机器人的 Telegram 用户 ID 列表。
@@ -206,7 +207,7 @@
     * 点击"下一步"按钮。
 5. **基础 LoRA 选择 (可选/管理员):**
     * 如果适用（例如，你是管理员或配置了特定的基础 LoRA 可见性），则会出现第二个键盘。
-    * 最多选择 **一个** 基础 LoRA (`[[baseLoRAs]]`) 或选择"跳过/取消选择"。
+    * 可选择基础 LoRA（可多选），总数受 `maxLoras` 限制，或选择“跳过/清空”。
     * 点击"确认生成"按钮。
 6. **生成:**
     * 机器人确认所选的提示和 LoRA 组合。

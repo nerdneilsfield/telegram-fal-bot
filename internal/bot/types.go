@@ -36,14 +36,14 @@ type LoraConfig struct {
 
 // UserState holds the current state of a user interaction.
 type UserState struct {
-	UserID               int64    `json:"user_id"`
-	ChatID               int64    `json:"chat_id"`                 // Original chat where interaction started
-	MessageID            int      `json:"message_id"`              // ID of the message to edit (e.g., the keyboard message)
-	Action               string   `json:"action"`                  // e.g., "awaiting_lora_selection", "awaiting_caption_confirmation"
-	OriginalCaption      string   `json:"original_caption"`        // The text prompt or generated caption
-	SelectedLoras        []string `json:"selected_loras"`          // Names of selected standard LoRAs
-	SelectedBaseLoraName string   `json:"selected_base_lora_name"` // Name of the selected Base LoRA
-	LastUpdated          time.Time
+	UserID            int64    `json:"user_id"`
+	ChatID            int64    `json:"chat_id"`             // Original chat where interaction started
+	MessageID         int      `json:"message_id"`          // ID of the message to edit (e.g., the keyboard message)
+	Action            string   `json:"action"`              // e.g., "awaiting_lora_selection", "awaiting_caption_confirmation"
+	OriginalCaption   string   `json:"original_caption"`    // The text prompt or generated caption
+	SelectedLoras     []string `json:"selected_loras"`      // Names of selected standard LoRAs
+	SelectedBaseLoras []string `json:"selected_base_loras"` // Names of selected Base LoRAs
+	LastUpdated       time.Time
 	// For config updates
 	ConfigFieldToUpdate string
 	ImageFileURL        string `json:"-"` // Store image URL if interaction started with photo

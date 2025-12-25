@@ -57,7 +57,7 @@ func prepareGenerationParameters(userID int64, userState *UserState, deps BotDep
 // RequestInfo holds details for a single LoRA combination request.
 type RequestInfo struct {
 	StandardLora LoraConfig
-	BaseLora     *LoraConfig // Pointer, as base LoRA is optional
+	BaseLoras    []LoraConfig
 	Params       *GenerationParameters
 }
 
@@ -74,16 +74,16 @@ func validateAndPrepareRequests(userID int64, userState *UserState, params *Gene
 		return nil, initialErrors, 0
 	}
 
-	// Find the selected Base LoRA detail (if any)
-	var selectedBaseLoraDetail *LoraConfig
-	if userState.SelectedBaseLoraName != "" {
-		detail, found := findLoraByName(userState.SelectedBaseLoraName, deps.BaseLoRA)
+	// Find the selected Base LoRAs (if any)
+	selectedBaseLoras := []LoraConfig{}
+	for _, name := range userState.SelectedBaseLoras {
+		detail, found := findLoraByName(name, deps.BaseLoRA)
 		if !found {
-			deps.Logger.Error("Selected Base LoRA name not found in config, proceeding without it", zap.String("name", userState.SelectedBaseLoraName), zap.Int64("userID", userID))
-		} else {
-			deps.Logger.Info("Found selected Base LoRA", zap.String("name", detail.Name), zap.Int64("userID", userID))
-			selectedBaseLoraDetail = &detail // Store pointer
+			deps.Logger.Error("Selected Base LoRA name not found in config, proceeding without it", zap.String("name", name), zap.Int64("userID", userID))
+			continue
 		}
+		deps.Logger.Info("Found selected Base LoRA", zap.String("name", detail.Name), zap.Int64("userID", userID))
+		selectedBaseLoras = append(selectedBaseLoras, detail)
 	}
 
 	numRequests := 0
@@ -125,7 +125,7 @@ func validateAndPrepareRequests(userID int64, userState *UserState, params *Gene
 	for _, standardLora := range standardLoraDetailsMap {
 		validRequests = append(validRequests, RequestInfo{
 			StandardLora: standardLora,
-			BaseLora:     selectedBaseLoraDetail,
+			BaseLoras:    selectedBaseLoras,
 			Params:       params,
 		})
 	}
@@ -170,6 +170,9 @@ func executeAndPollRequest(reqInfo RequestInfo, userID int64, deps BotDeps, resu
 	defer wg.Done()
 	userLang := getUserLanguagePreference(userID, deps)
 	requestResult := RequestResult{LoraNames: []string{reqInfo.StandardLora.Name}}
+	for _, baseLora := range reqInfo.BaseLoras {
+		requestResult.LoraNames = append(requestResult.LoraNames, baseLora.Name)
+	}
 
 	// --- Individual Balance Deduction --- //
 	if deps.BalanceManager != nil {
@@ -189,28 +192,34 @@ func executeAndPollRequest(reqInfo RequestInfo, userID int64, deps BotDeps, resu
 		deps.Logger.Info("Balance deducted for LoRA request", zap.Int64("user_id", userID), zap.String("lora", reqInfo.StandardLora.Name))
 	}
 
-	// --- Prepare LoRAs for API (Max 2) --- //
+	maxLoras := deps.Config.APIEndpoints.MaxLoras
+	if maxLoras <= 0 {
+		maxLoras = 2
+	}
+
+	// --- Prepare LoRAs for API (Max from config) --- //
 	lorasForAPI := []falapi.LoraWeight{{Path: reqInfo.StandardLora.URL, Scale: reqInfo.StandardLora.Weight}}
 	addedURLs := map[string]struct{}{reqInfo.StandardLora.URL: {}}
 
-	if reqInfo.BaseLora != nil {
-		requestResult.LoraNames = append(requestResult.LoraNames, reqInfo.BaseLora.Name) // Add base name to result regardless
-		if len(lorasForAPI) < 2 {
-			if _, exists := addedURLs[reqInfo.BaseLora.URL]; !exists {
-				lorasForAPI = append(lorasForAPI, falapi.LoraWeight{Path: reqInfo.BaseLora.URL, Scale: reqInfo.BaseLora.Weight})
-				deps.Logger.Debug("Adding selected Base LoRA to API request", zap.String("base_lora", reqInfo.BaseLora.Name), zap.String("standard_lora", reqInfo.StandardLora.Name))
-			} else {
-				deps.Logger.Debug("Skipping adding Base LoRA to API as its URL is same as standard LoRA", zap.String("base_lora", reqInfo.BaseLora.Name), zap.String("standard_lora", reqInfo.StandardLora.Name))
-			}
+	for _, baseLora := range reqInfo.BaseLoras {
+		if len(lorasForAPI) >= maxLoras {
+			deps.Logger.Debug("Skipping adding Base LoRA to API as request already has max LoRAs",
+				zap.String("base_lora", baseLora.Name),
+				zap.String("standard_lora", reqInfo.StandardLora.Name),
+				zap.Int("max_loras", maxLoras),
+			)
+			continue
+		}
+		if _, exists := addedURLs[baseLora.URL]; !exists {
+			lorasForAPI = append(lorasForAPI, falapi.LoraWeight{Path: baseLora.URL, Scale: baseLora.Weight})
+			addedURLs[baseLora.URL] = struct{}{}
+			deps.Logger.Debug("Adding selected Base LoRA to API request", zap.String("base_lora", baseLora.Name), zap.String("standard_lora", reqInfo.StandardLora.Name))
 		} else {
-			deps.Logger.Debug("Skipping adding Base LoRA to API as request already has max LoRAs", zap.String("base_lora", reqInfo.BaseLora.Name), zap.String("standard_lora", reqInfo.StandardLora.Name))
+			deps.Logger.Debug("Skipping adding Base LoRA to API as its URL is same as another LoRA", zap.String("base_lora", baseLora.Name), zap.String("standard_lora", reqInfo.StandardLora.Name))
 		}
 	}
 
-	promptLoras := []LoraConfig{}
-	if reqInfo.BaseLora != nil {
-		promptLoras = append(promptLoras, *reqInfo.BaseLora)
-	}
+	promptLoras := append([]LoraConfig{}, reqInfo.BaseLoras...)
 	promptLoras = append(promptLoras, reqInfo.StandardLora)
 	prompt := buildPrompt(reqInfo.Params.Prompt, promptLoras...)
 
@@ -507,7 +516,7 @@ func GenerateImagesForUser(userState *UserState, deps BotDeps) {
 	var wg sync.WaitGroup
 	resultsChan := make(chan RequestResult, validRequestCount)
 
-	deps.Logger.Info("Starting concurrent generation requests", zap.Int("count", validRequestCount), zap.Stringp("selected_base_lora", &userState.SelectedBaseLoraName))
+	deps.Logger.Info("Starting concurrent generation requests", zap.Int("count", validRequestCount), zap.Strings("selected_base_loras", userState.SelectedBaseLoras))
 	statusUpdate := deps.I18n.T(userLang, "generate_submit_multi", "count", validRequestCount)
 	editStatus := tgbotapi.NewEditMessageText(chatID, originalMessageID, statusUpdate)
 	deps.Bot.Send(editStatus)

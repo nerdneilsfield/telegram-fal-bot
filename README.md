@@ -75,7 +75,7 @@ A Telegram bot integrated with the Fal AI API to provide AI-powered features lik
         * `telegramAPIURL`: Use default unless you need a custom Telegram API endpoint.
         * `defaultLanguage`: Set the default bot response language (e.g., `"en"`, `"zh"`).
         * `[logConfig]`: Configure logging level, format, and optional file output.
-        * `[apiEndpoints]`: Verify or update the `baseURL`, `fluxLora`, and `florenceCaption` endpoints if they differ from the defaults.
+        * `[apiEndpoints]`: Verify or update the `baseURL`, `fluxLora`, `florenceCaption`, and `maxLoras` settings if they differ from the defaults.
         * `[[userGroups]]`: Define user groups and assign user IDs if you need group-based LoRA access control.
         * `[balance]`: Configure the `initialBalance` and `costPerGeneration` if using the balance system.
         * `[defaultGenerationSettings]`: Set global defaults for `imageSize`, `numInferenceSteps`, `guidanceScale`, and `numImages`.
@@ -153,6 +153,7 @@ The bot's behavior is controlled by the `config.toml` file.
   * `baseURL` (string): Base URL for Fal.ai API (e.g., `"https://queue.fal.run"`).
   * `fluxLora` (string): Relative path/identifier for the image generation endpoint (e.g., `"fal-ai/flux-lora"`).
   * `florenceCaption` (string): Relative path/identifier for the image captioning endpoint (e.g., `"fal-ai/florence-2-base"`).
+  * `maxLoras` (int, Optional): Maximum total LoRAs per request (Base + standard). Defaults to 2 if unset.
 
 * **`[auth]`:** Authorization settings.
   * `authorizedUserIDs` ([]int64, Required): List of Telegram User IDs allowed to use the bot.
@@ -205,7 +206,7 @@ The bot's behavior is controlled by the `config.toml` file.
     * Click the "Next Step" button.
 5. **Base LoRA Selection (Optional/Admin):**
     * If applicable (e.g., you are an admin or specific Base LoRAs are configured for visibility), a second keyboard appears.
-    * Select **at most one** Base LoRA (`[[baseLoRAs]]`) or choose to "Skip/Deselect".
+    * Select Base LoRA(s) (`[[baseLoRAs]]`) or choose to "Skip/Clear", subject to the `maxLoras` total limit.
     * Click the "Confirm Generation" button.
 6. **Generation:**
     * The bot confirms the selected prompt and LoRA combination(s).

@@ -14,7 +14,7 @@ type UserState struct {
 	Action            string // e.g., "awaiting_prompt", "awaiting_lora_selection", "awaiting_base_lora_selection", "awaiting_config_value"
 	OriginalCaption   string
 	SelectedLoras     []string // Stores NAMES of selected STANDARD LoRAs
-	SelectedBaseLoraName string   // Stores NAME of the selected SINGLE Base LoRA (or empty)
+	SelectedBaseLoras []string // Stores NAMES of the selected Base LoRAs (or empty)
 	LastUpdated       time.Time
 	// For config updates
 	ConfigFieldToUpdate string

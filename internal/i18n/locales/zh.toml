@@ -83,10 +83,11 @@ callback_error_state_missing_context = "内部状态错误，请重试。"
 lora_select_invalid_id = "错误：无效的 LoRA 选择"
 lora_select_standard_selected = "已选标准: {{.selection}}"
 lora_select_standard_none_selected = "请选择至少一个标准 LoRA"
-lora_select_standard_done_prompt = "请选择一个 Base LoRA (可选)"
+lora_select_standard_done_prompt = "请选择 Base LoRA (可选)"
 lora_select_standard_error_none_selected = "请至少选择一个标准 LoRA！"
 lora_select_cancel_success = "操作已取消"
 lora_select_unknown_action = "未知操作"
+lora_select_limit_reached = "⚠️ 最多选择 {{.max}} 个 LoRA，请先取消一个。"
 
 base_lora_select_invalid_id = "错误：无效的 Base LoRA 选择"
 base_lora_select_deselected = "已取消选择 Base LoRA"
@@ -143,12 +144,12 @@ lora_selection_keyboard_next_button = "➡️ 下一步: 选择 Base LoRA"
 lora_selection_keyboard_cancel_button = "❌ 取消"
 
 base_lora_selection_keyboard_selected_standard = "已选标准 LoRA: `{{.selection}}`\n"
-base_lora_selection_keyboard_prompt = "请选择 **最多一个** Base LoRA (可选):\n"
+base_lora_selection_keyboard_prompt = "请选择 Base LoRA (可选)，总数(标准+Base) <= {{.max}}:\n"
 base_lora_selection_keyboard_current_base = "\n当前 Base LoRA: `{{.name}}`"
 base_lora_selection_keyboard_none_available = "(无可用 Base LoRA)"
 base_lora_selection_keyboard_skip_button = "➡️ 跳过 Base LoRA"
 base_lora_selection_keyboard_skipped_button = "➡️ (已跳过)"
-base_lora_selection_keyboard_deselect_button = "❌ 取消选择 Base LoRA"
+base_lora_selection_keyboard_deselect_button = "❌ 清空 Base LoRA"
 base_lora_selection_keyboard_confirm_button = "✅ 确认生成"
 base_lora_selection_keyboard_cancel_button = "🚫 取消"
 
@@ -239,4 +240,3 @@ other = "⚠️ 无效输入。请输入 {{.min}} 到 {{.max}} 之间的整数�
 # description = "无效浮点数输入范围的错误消息" # Optional description added
 one = "⚠️ 无效输入。请输入 {{.min}} 到 {{.max}} 之间的数字 (例如 7.0)。"
 other = "⚠️ 无效输入。请输入 {{.min}} 到 {{.max}} 之间的数字 (例如 7.0)。"
-

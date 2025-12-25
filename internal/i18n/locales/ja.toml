@@ -82,6 +82,7 @@ lora_select_standard_done_prompt = "ベースLoRAを選択してください（�
 lora_select_standard_error_none_selected = "少なくとも1つの標準LoRAを選択してください！"
 lora_select_cancel_success = "操作はキャンセルされました"
 lora_select_unknown_action = "不明な操作です"
+lora_select_limit_reached = "⚠️ 合計 {{.max}} 個まで選択できます。1つ解除してください。"
 
 base_lora_select_invalid_id = "エラー: 無効なベースLoRA選択です"
 base_lora_select_deselected = "ベースLoRAの選択が解除されました"
@@ -90,7 +91,7 @@ base_lora_skip_success = "ベースLoRAの選択をスキップしました"
 base_lora_confirm_error_no_standard = "エラー: 標準LoRAが選択されていません。"
 base_lora_confirm_submitting = "生成リクエストを送信中..."
 base_lora_confirm_prep_text = "⏳ {{.count}} 個の組み合わせを生成準備中...\n標準LoRA: `{standardLoras}`"
-base_lora_confirm_prep_text_with_base = "⏳ {{.count}} 個の組み合わせを生成準備中...\n標準LoRA: `{standardLoras}`\nベースLoRA: `{baseLora}`"
+base_lora_confirm_prep_text_with_base = "⏳ {{.count}} 個の組み合わせを生成準備中...\n標準LoRA: `{standardLoras}`\nベースLoRA(複数可): `{baseLora}`"
 base_lora_confirm_prompt = "プロンプト: ```\n{{.prompt}}\n```"
 base_lora_cancel_success = "操作はキャンセルされました"
 
@@ -139,12 +140,12 @@ lora_selection_keyboard_next_button = "➡️ 次へ: ベースLoRAを選択"
 lora_selection_keyboard_cancel_button = "❌ キャンセル"
 
 base_lora_selection_keyboard_selected_standard = "選択された標準LoRA: `{{.selection}}`\n"
-base_lora_selection_keyboard_prompt = "**最大1つ**のベースLoRAを選択してください（任意）:\n"
+base_lora_selection_keyboard_prompt = "ベースLoRAを選択してください（任意）。標準+ベースの合計は {{.max}} まで:\n"
 base_lora_selection_keyboard_current_base = "\n現在のベースLoRA: `{{.name}}`"
 base_lora_selection_keyboard_none_available = "(利用可能なベースLoRAはありません)"
 base_lora_selection_keyboard_skip_button = "➡️ ベースLoRAをスキップ"
 base_lora_selection_keyboard_skipped_button = "➡️ (スキップ済み)"
-base_lora_selection_keyboard_deselect_button = "❌ ベースLoRAの選択を解除"
+base_lora_selection_keyboard_deselect_button = "❌ ベースLoRAをクリア"
 base_lora_selection_keyboard_confirm_button = "✅ 生成を確認"
 base_lora_selection_keyboard_cancel_button = "🚫 キャンセル"
 
@@ -245,4 +246,3 @@ other = "⚠️ 無効な入力です。{{.min}} から {{.max}} までの整数
 # description = "無効な浮動小数点数入力範囲のエラーメッセージ" # Optional description added
 one = "⚠️ 無効な入力です。{{.min}} から {{.max}} までの数値（例: 7.0）を入力してください。" # 日本語では単複同形が多いが、区別する場合
 other = "⚠️ 無効な入力です。{{.min}} から {{.max}} までの数値（例: 7.0）を入力してください。"
-

@@ -35,6 +35,7 @@ type APIEndpointsConfig struct {
 	BaseURL         string `toml:"baseURL"`
 	FlorenceCaption string `toml:"florenceCaption"`
 	FluxLora        string `toml:"fluxLora"`
+	MaxLoras        int    `toml:"maxLoras"`
 }
 
 type AuthConfig struct {
@@ -138,6 +139,9 @@ func ValidateConfig(cfg *Config) error {
 	}
 	if cfg.APIEndpoints.FluxLora == "" || !ValidateURL(cfg.APIEndpoints.FluxLora) {
 		return fmt.Errorf("fluxLora is required and must be a valid URL")
+	}
+	if cfg.APIEndpoints.MaxLoras <= 0 {
+		cfg.APIEndpoints.MaxLoras = 2
 	}
 	if len(cfg.Admins.AdminUserIDs) == 0 {
 		return fmt.Errorf("adminUserIDs is required")

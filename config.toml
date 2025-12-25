@@ -30,6 +30,7 @@ defaultLanguage = "zh"
 baseURL = "https://queue.fal.run" # 或者你的 Fal 基础 URL
 fluxLora = "fal-ai/flux-lora" # Lora 端点的相对路径
 florenceCaption = "fal-ai/florence-2-base" # Caption 端点的相对路径
+maxLoras = 2 # 每次请求最多使用的 LoRA 总数 (Base + 标准)
 
 # --- Authorization ---
 [auth]

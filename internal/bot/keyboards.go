@@ -146,17 +146,25 @@ func SendBaseLoraSelectionKeyboard(chatID int64, messageID int, state *UserState
 
 	// Build prompt text using i18n
 	promptBuilder.WriteString(deps.I18n.T(userLang, "base_lora_selection_keyboard_selected_standard", "selection", fmt.Sprintf("`%s`", strings.Join(state.SelectedLoras, "`, `"))))
-	promptBuilder.WriteString(deps.I18n.T(userLang, "base_lora_selection_keyboard_prompt"))
-	if state.SelectedBaseLoraName != "" {
-		promptBuilder.WriteString(deps.I18n.T(userLang, "base_lora_selection_keyboard_current_base", "name", state.SelectedBaseLoraName))
+	maxLoras := deps.Config.APIEndpoints.MaxLoras
+	if maxLoras <= 0 {
+		maxLoras = 2
+	}
+	promptBuilder.WriteString(deps.I18n.T(userLang, "base_lora_selection_keyboard_prompt", "max", maxLoras))
+	if len(state.SelectedBaseLoras) > 0 {
+		promptBuilder.WriteString(deps.I18n.T(userLang, "base_lora_selection_keyboard_current_base", "name", strings.Join(state.SelectedBaseLoras, ", ")))
 	}
 
 	// --- Base LoRA Buttons --- // Use I18n for button text
 	currentRow := []tgbotapi.InlineKeyboardButton{}
+	selectedBaseSet := make(map[string]struct{}, len(state.SelectedBaseLoras))
+	for _, name := range state.SelectedBaseLoras {
+		selectedBaseSet[name] = struct{}{}
+	}
 	if len(visibleBaseLoras) > 0 {
 		for _, lora := range visibleBaseLoras {
 			buttonText := lora.Name
-			if state.SelectedBaseLoraName == lora.Name {
+			if _, ok := selectedBaseSet[lora.Name]; ok {
 				buttonText = deps.I18n.T(userLang, "button_checkmark") + " " + lora.Name // Mark selected
 			}
 			button := tgbotapi.NewInlineKeyboardButtonData(buttonText, "base_lora_select_"+lora.ID)
@@ -176,7 +184,7 @@ func SendBaseLoraSelectionKeyboard(chatID int64, messageID int, state *UserState
 
 	// --- Action Buttons --- // Use i18n for button text
 	skipButtonText := deps.I18n.T(userLang, "base_lora_selection_keyboard_skip_button")
-	if state.SelectedBaseLoraName == "" { // User hasn't selected one yet
+	if len(state.SelectedBaseLoras) == 0 { // User hasn't selected one yet
 		// Show skip button, but check if they have already *explicitly* skipped (though state doesn't track that directly)
 		// Let's assume if name is empty, they either haven't chosen or have deselected/skipped.
 		// Maybe change text if deselected? For now, keep it simple: Show Skip or Deselect.

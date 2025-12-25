@@ -107,6 +107,15 @@ func HandleCallbackQuery(callbackQuery *tgbotapi.CallbackQuery, deps BotDeps) {
 				}
 			}
 			if !found {
+				maxLoras := deps.Config.APIEndpoints.MaxLoras
+				if maxLoras <= 0 {
+					maxLoras = 2
+				}
+				if len(state.SelectedBaseLoras)+len(state.SelectedLoras)+1 > maxLoras {
+					answer.Text = deps.I18n.T(userLang, "lora_select_limit_reached", "max", maxLoras)
+					deps.Bot.Request(answer)
+					return
+				}
 				newSelection = append(newSelection, selectedLora.Name)
 			}
 			state.SelectedLoras = newSelection
@@ -167,14 +176,31 @@ func HandleCallbackQuery(callbackQuery *tgbotapi.CallbackQuery, deps BotDeps) {
 				return
 			}
 
-			// Update state with the selected Base LoRA Name
-			if state.SelectedBaseLoraName == selectedBaseLora.Name {
-				state.SelectedBaseLoraName = "" // Deselect if clicked again
-				answer.Text = deps.I18n.T(userLang, "base_lora_select_deselected")
-			} else {
-				state.SelectedBaseLoraName = selectedBaseLora.Name
-				answer.Text = deps.I18n.T(userLang, "base_lora_select_selected", "name", state.SelectedBaseLoraName)
+			found := false
+			newSelection := []string{}
+			for _, name := range state.SelectedBaseLoras {
+				if name == selectedBaseLora.Name {
+					found = true
+				} else {
+					newSelection = append(newSelection, name)
+				}
 			}
+			if !found {
+				maxLoras := deps.Config.APIEndpoints.MaxLoras
+				if maxLoras <= 0 {
+					maxLoras = 2
+				}
+				if len(state.SelectedBaseLoras)+len(state.SelectedLoras)+1 > maxLoras {
+					answer.Text = deps.I18n.T(userLang, "lora_select_limit_reached", "max", maxLoras)
+					deps.Bot.Request(answer)
+					return
+				}
+				newSelection = append(newSelection, selectedBaseLora.Name)
+				answer.Text = deps.I18n.T(userLang, "base_lora_select_selected", "name", selectedBaseLora.Name)
+			} else {
+				answer.Text = deps.I18n.T(userLang, "base_lora_select_deselected")
+			}
+			state.SelectedBaseLoras = newSelection
 			deps.StateManager.SetState(userID, state)
 			deps.Bot.Request(answer)
 			// Update keyboard to show selection
@@ -182,7 +208,7 @@ func HandleCallbackQuery(callbackQuery *tgbotapi.CallbackQuery, deps BotDeps) {
 			SendBaseLoraSelectionKeyboard(state.ChatID, state.MessageID, state, deps, true)
 
 		} else if data == "base_lora_skip" {
-			state.SelectedBaseLoraName = ""
+			state.SelectedBaseLoras = []string{}
 			deps.StateManager.SetState(userID, state)
 			answer.Text = deps.I18n.T(userLang, "base_lora_skip_success")
 			deps.Bot.Request(answer)
@@ -205,8 +231,8 @@ func HandleCallbackQuery(callbackQuery *tgbotapi.CallbackQuery, deps BotDeps) {
 			// Build confirmation message using i18n keys
 			var confirmBuilder strings.Builder
 			standardLorasStr := fmt.Sprintf("`%s`", strings.Join(state.SelectedLoras, "`, `"))
-			if state.SelectedBaseLoraName != "" {
-				baseLoraStr := fmt.Sprintf("`%s`", state.SelectedBaseLoraName)
+			if len(state.SelectedBaseLoras) > 0 {
+				baseLoraStr := strings.Join(state.SelectedBaseLoras, ", ")
 				confirmBuilder.WriteString(deps.I18n.T(userLang, "base_lora_confirm_prep_text_with_base",
 					"count", len(state.SelectedLoras),
 					"standardLoras", standardLorasStr,
@@ -253,7 +279,7 @@ func HandleCallbackQuery(callbackQuery *tgbotapi.CallbackQuery, deps BotDeps) {
 			state.Action = "awaiting_lora_selection"
 			// Keep OriginalCaption, reset SelectedLoras
 			state.SelectedLoras = []string{}
-			state.SelectedBaseLoraName = "" // Clear base lora selection too
+			state.SelectedBaseLoras = []string{} // Clear base lora selection too
 			deps.StateManager.SetState(userID, state)
 
 			// Send the standard LoRA selection keyboard, editing the confirmation message
