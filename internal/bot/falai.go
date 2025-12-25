@@ -141,6 +141,30 @@ type RequestResult struct {
 	LoraNames []string // LoRAs used for this specific request (Standard + Base if used)
 }
 
+func buildPrompt(basePrompt string, loras ...LoraConfig) string {
+	prompt := strings.TrimSpace(basePrompt)
+	if len(loras) == 0 {
+		return prompt
+	}
+
+	parts := make([]string, 0, len(loras))
+	for _, lora := range loras {
+		appendPrompt := strings.TrimSpace(lora.AppendPrompt)
+		if appendPrompt != "" {
+			parts = append(parts, appendPrompt)
+		}
+	}
+	if len(parts) == 0 {
+		return prompt
+	}
+
+	prefix := strings.Join(parts, " ")
+	if prompt == "" {
+		return prefix
+	}
+	return prefix + " " + prompt
+}
+
 // executeAndPollRequest handles a single generation request lifecycle.
 func executeAndPollRequest(reqInfo RequestInfo, userID int64, deps BotDeps, resultsChan chan<- RequestResult, wg *sync.WaitGroup) {
 	defer wg.Done()
@@ -183,6 +207,13 @@ func executeAndPollRequest(reqInfo RequestInfo, userID int64, deps BotDeps, resu
 		}
 	}
 
+	promptLoras := []LoraConfig{}
+	if reqInfo.BaseLora != nil {
+		promptLoras = append(promptLoras, *reqInfo.BaseLora)
+	}
+	promptLoras = append(promptLoras, reqInfo.StandardLora)
+	prompt := buildPrompt(reqInfo.Params.Prompt, promptLoras...)
+
 	// --- Submit Single Request --- //
 	deps.Logger.Debug("Submitting request for LoRA combo",
 		zap.Strings("names", requestResult.LoraNames),
@@ -190,7 +221,7 @@ func executeAndPollRequest(reqInfo RequestInfo, userID int64, deps BotDeps, resu
 		zap.Float64("guidance_scale", reqInfo.Params.GuidanceScale),
 	)
 	requestID, err := deps.FalClient.SubmitGenerationRequest(
-		reqInfo.Params.Prompt,
+		prompt,
 		lorasForAPI,
 		requestResult.LoraNames,
 		reqInfo.Params.ImageSize,

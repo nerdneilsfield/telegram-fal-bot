@@ -75,12 +75,14 @@ florenceCaption = "fal-ai/florence-2-base" # Caption 端点的相对路径
   name = "Default Flux Enhancer"
   url = "fal-ai/..." # URL or identifier for the base LoRA on Fal.ai
   weight = 0.5
+  append_prompt = "" # Optional: prepended to the final prompt when selected
   allowGroups = [] # Example: Public Base LoRA (if applicable by logic)
 
 [[baseLoRAs]]
   name = "Admin Only Base"
   url = "fal-ai/..."
   weight = 0.6
+  append_prompt = ""      # Optional: prepended to the final prompt when selected
   allowGroups = ["vip"] # Example: Only VIPs (or admins) can use this base implicitly
 
 # --- Selectable LoRA Styles ---
@@ -89,24 +91,28 @@ florenceCaption = "fal-ai/florence-2-base" # Caption 端点的相对路径
   name = "Anime Style V2" # User-friendly name displayed in the bot
   url = "fal-ai/..."      # URL or identifier for this specific LoRA on Fal.ai
   weight = 0.8            # Default weight for this LoRA (if applicable)
+  append_prompt = ""      # Optional: prepended to the final prompt when selected
   allowGroups = []        # Public: Visible to all authorized users
 
 [[loras]]
   name = "Cinematic Look"
   url = "fal-ai/..."
   weight = 0.75
+  append_prompt = ""      # Optional: prepended to the final prompt when selected
   # allowGroups = [] # Implicitly public if omitted or empty
 
 [[loras]]
   name = "Pixel Art"
   url = "fal-ai/..."
   weight = 0.9
+  append_prompt = ""      # Optional: prepended to the final prompt when selected
   allowGroups = ["vip", "testers"] # Only visible to users in 'vip' OR 'testers' groups
 
 [[loras]]
   name = "Exclusive VIP Style"
   url = "fal-ai/..."
   weight = 0.85
+  append_prompt = ""      # Optional: prepended to the final prompt when selected
   allowGroups = ["vip"] # Only visible to users in the 'vip' group
 
 # Add more [[LoRAs]] sections for other styles you want to offer.

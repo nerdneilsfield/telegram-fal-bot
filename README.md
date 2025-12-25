@@ -178,12 +178,14 @@ The bot's behavior is controlled by the `config.toml` file.
   * `name` (string): Internal or user-facing name.
   * `url` (string): Fal.ai URL/identifier for the Base LoRA.
   * `weight` (float64): Default weight/scale for this Base LoRA.
+  * `append_prompt` (string, Optional): Text prepended to the final prompt (with a space) when this Base LoRA is selected.
   * `allowGroups` ([]string, Optional): Restrict implicit usage or visibility to specific user groups (defined in `[[userGroups]]`).
 
 * **`[[loras]]` (Required Array - At least one):** Define the primary, selectable LoRA styles.
   * `name` (string): User-friendly name displayed in the bot's selection keyboard.
   * `url` (string): Fal.ai URL/identifier for this specific LoRA.
   * `weight` (float64): Default weight/scale for this LoRA style.
+  * `append_prompt` (string, Optional): Text prepended to the final prompt (with a space) when this LoRA is selected.
   * `allowGroups` ([]string, Optional): Restrict visibility/selection of this style to specific user groups. If empty or omitted, the style is available to all authorized users.
 
 ## Usage Flow

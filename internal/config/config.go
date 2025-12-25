@@ -46,10 +46,11 @@ type AdminConfig struct {
 }
 
 type LoraConfig struct {
-	Name        string   `toml:"name"`
-	URL         string   `toml:"url"`
-	Weight      float64  `toml:"weight"`
-	AllowGroups []string `toml:"allowGroups,omitempty"`
+	Name         string   `toml:"name"`
+	URL          string   `toml:"url"`
+	Weight       float64  `toml:"weight"`
+	AllowGroups  []string `toml:"allowGroups,omitempty"`
+	AppendPrompt string   `toml:"append_prompt"`
 }
 
 type BalanceConfig struct {
@@ -171,8 +172,8 @@ func ValidateConfig(cfg *Config) error {
 	if cfg.DefaultGenerationSettings.NumInferenceSteps <= 0 || cfg.DefaultGenerationSettings.NumInferenceSteps > 50 {
 		return fmt.Errorf("numInferenceSteps must be greater than 0 and less than 50")
 	}
-	if cfg.DefaultGenerationSettings.GuidanceScale <= 0 || cfg.DefaultGenerationSettings.GuidanceScale > 15 {
-		return fmt.Errorf("guidanceScale must be greater than 0 and less than 15")
+	if cfg.DefaultGenerationSettings.GuidanceScale < 0 || cfg.DefaultGenerationSettings.GuidanceScale > 15 {
+		return fmt.Errorf("guidanceScale must be between 0 and 15")
 	}
 	if cfg.DefaultGenerationSettings.NumImages <= 0 {
 		return fmt.Errorf("numImages must be positive")

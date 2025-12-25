@@ -26,11 +26,12 @@ import (
 // LoraConfig represents the configuration for a single LoRA, including a generated ID.
 // This definition is within the bot package.
 type LoraConfig struct {
-	ID          string   // Unique ID generated from Name, URL, Weight
-	Name        string   // Copied from config.LoraConfig
-	URL         string   // Copied from config.LoraConfig
-	Weight      float64  // Copied from config.LoraConfig
-	AllowGroups []string // Copied from config.LoraConfig
+	ID           string   // Unique ID generated from Name, URL, Weight
+	Name         string   // Copied from config.LoraConfig
+	URL          string   // Copied from config.LoraConfig
+	Weight       float64  // Copied from config.LoraConfig
+	AllowGroups  []string // Copied from config.LoraConfig
+	AppendPrompt string   // Copied from config.LoraConfig
 }
 
 // UserState holds the current state of a user interaction.

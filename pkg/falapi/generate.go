@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http" // Ensure net/http is imported
 	"net/url"  // Import net/url
+	"strings"
 	"time"
 
 	"go.uber.org/zap"
@@ -66,6 +67,40 @@ type ErrorDetail struct {
 	// Structure depends on how Fal.ai reports errors
 	Message string `json:"message"`
 	// StackTrace string `json:"stacktrace,omitempty"`
+}
+
+func fallbackModelEndpoints(modelEndpoint string) []string {
+	trimmed := strings.Trim(modelEndpoint, "/")
+	if trimmed == "" {
+		return nil
+	}
+
+	fallbacks := []string{}
+	add := func(endpoint string) {
+		if endpoint == "" || endpoint == trimmed {
+			return
+		}
+		for _, existing := range fallbacks {
+			if existing == endpoint {
+				return
+			}
+		}
+		fallbacks = append(fallbacks, endpoint)
+	}
+
+	if strings.HasSuffix(trimmed, "/lora") {
+		withoutLora := strings.TrimSuffix(trimmed, "/lora")
+		add(withoutLora)
+		if strings.HasSuffix(withoutLora, "/turbo") {
+			add(strings.TrimSuffix(withoutLora, "/turbo"))
+		}
+	}
+
+	if strings.HasSuffix(trimmed, "/turbo") {
+		add(strings.TrimSuffix(trimmed, "/turbo"))
+	}
+
+	return fallbacks
 }
 
 // GenerateResponse: Final result fetched after completion
@@ -143,11 +178,36 @@ func (c *Client) SubmitGenerationRequest(prompt string, loras []LoraWeight, lora
 
 // GetRequestStatus polls the status endpoint.
 func (c *Client) GetRequestStatus(requestID, modelEndpoint string) (*StatusResponse, error) {
+	statusResp, statusCode, err := c.getRequestStatusOnce(requestID, modelEndpoint)
+	if err == nil || statusCode != http.StatusMethodNotAllowed {
+		return statusResp, err
+	}
+
+	fallbacks := fallbackModelEndpoints(modelEndpoint)
+	for _, fallback := range fallbacks {
+		c.logger.Warn("Status endpoint returned 405, retrying with fallback endpoint",
+			zap.String("model_endpoint", modelEndpoint),
+			zap.String("fallback_endpoint", fallback),
+			zap.String("request_id", requestID),
+		)
+		fallbackResp, fallbackCode, fallbackErr := c.getRequestStatusOnce(requestID, fallback)
+		if fallbackErr == nil {
+			return fallbackResp, nil
+		}
+		if fallbackCode != http.StatusMethodNotAllowed {
+			return fallbackResp, fmt.Errorf("fallback status endpoint %s failed: %w", fallback, fallbackErr)
+		}
+	}
+
+	return statusResp, err
+}
+
+func (c *Client) getRequestStatusOnce(requestID, modelEndpoint string) (*StatusResponse, int, error) {
 	// Construct the status URL using url.JoinPath for correctness
 	statusURL, err := url.JoinPath(c.baseURL, modelEndpoint, "requests", requestID, "status")
 	if err != nil {
 		// Although JoinPath rarely errors with valid inputs, handle it just in case
-		return nil, fmt.Errorf("failed to construct status URL: %w", err)
+		return nil, 0, fmt.Errorf("failed to construct status URL: %w", err)
 	}
 
 	// Log the URL being requested for debugging
@@ -155,79 +215,104 @@ func (c *Client) GetRequestStatus(requestID, modelEndpoint string) (*StatusRespo
 
 	req, err := http.NewRequest("GET", statusURL, nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create status request: %w", err)
+		return nil, 0, fmt.Errorf("failed to create status request: %w", err)
 	}
 	req.Header.Set("Authorization", "Key "+c.apiKey)
 	req.Header.Set("Accept", "application/json")
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("failed to send status request: %w", err)
+		return nil, 0, fmt.Errorf("failed to send status request: %w", err)
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read status response body: %w", err)
+		return nil, resp.StatusCode, fmt.Errorf("failed to read status response body: %w", err)
 	}
 
 	if resp.StatusCode >= 400 {
 		// Try to parse error response as StatusResponse for potential details
 		var statusResp StatusResponse
 		if json.Unmarshal(body, &statusResp) == nil && statusResp.Error != nil {
-			return &statusResp, fmt.Errorf("API status check failed with status %d: %s", resp.StatusCode, statusResp.Error.Message)
+			return &statusResp, resp.StatusCode, fmt.Errorf("API status check failed with status %d: %s", resp.StatusCode, statusResp.Error.Message)
 		}
-		return nil, fmt.Errorf("API status check failed with status %d: %s", resp.StatusCode, string(body))
+		return nil, resp.StatusCode, fmt.Errorf("API status check failed with status %d: %s", resp.StatusCode, string(body))
 	}
 
 	var response StatusResponse
 	if err := json.Unmarshal(body, &response); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal status response: %w, body: %s", err, string(body))
+		return nil, resp.StatusCode, fmt.Errorf("failed to unmarshal status response: %w, body: %s", err, string(body))
 	}
-	return &response, nil
+	return &response, resp.StatusCode, nil
 }
 
 // GetGenerationResult fetches the final result.
 func (c *Client) GetGenerationResult(requestID, modelEndpoint string) (*GenerateResponse, error) {
+	resultResp, statusCode, err := c.getGenerationResultOnce(requestID, modelEndpoint)
+	if err == nil || statusCode != http.StatusMethodNotAllowed {
+		return resultResp, err
+	}
+
+	fallbacks := fallbackModelEndpoints(modelEndpoint)
+	for _, fallback := range fallbacks {
+		c.logger.Warn("Result endpoint returned 405, retrying with fallback endpoint",
+			zap.String("model_endpoint", modelEndpoint),
+			zap.String("fallback_endpoint", fallback),
+			zap.String("request_id", requestID),
+		)
+		fallbackResp, fallbackCode, fallbackErr := c.getGenerationResultOnce(requestID, fallback)
+		if fallbackErr == nil {
+			return fallbackResp, nil
+		}
+		if fallbackCode != http.StatusMethodNotAllowed {
+			return fallbackResp, fmt.Errorf("fallback result endpoint %s failed: %w", fallback, fallbackErr)
+		}
+	}
+
+	return resultResp, err
+}
+
+func (c *Client) getGenerationResultOnce(requestID, modelEndpoint string) (*GenerateResponse, int, error) {
 	// Construct the result URL using url.JoinPath for correctness
 	resultURL, err := url.JoinPath(c.baseURL, modelEndpoint, "requests", requestID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to construct result URL: %w", err)
+		return nil, 0, fmt.Errorf("failed to construct result URL: %w", err)
 	}
 
 	req, err := http.NewRequest("GET", resultURL, nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create result request: %w", err)
+		return nil, 0, fmt.Errorf("failed to create result request: %w", err)
 	}
 	req.Header.Set("Authorization", "Key "+c.apiKey)
 	req.Header.Set("Accept", "application/json")
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("failed to send result request: %w", err)
+		return nil, 0, fmt.Errorf("failed to send result request: %w", err)
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read result response body: %w", err)
+		return nil, resp.StatusCode, fmt.Errorf("failed to read result response body: %w", err)
 	}
 
 	if resp.StatusCode >= 400 {
 		// Attempt to parse potential error details from GenerateResponse structure if API uses it
 		// Or just return the generic error
-		return nil, fmt.Errorf("API result fetch failed with status %d: %s", resp.StatusCode, string(body))
+		return nil, resp.StatusCode, fmt.Errorf("API result fetch failed with status %d: %s", resp.StatusCode, string(body))
 	}
 
 	var response GenerateResponse
 	if err := json.Unmarshal(body, &response); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal generation result: %w, body: %s", err, string(body))
+		return nil, resp.StatusCode, fmt.Errorf("failed to unmarshal generation result: %w, body: %s", err, string(body))
 	}
 
 	// Optional: Check within the response if there's an explicit error field even with 200 OK
 	// if response.Error != nil { ... }
 
-	return &response, nil
+	return &response, resp.StatusCode, nil
 }
 
 // PollForResult polls the status and fetches the result when completed.

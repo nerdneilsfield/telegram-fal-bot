@@ -199,11 +199,12 @@ func GenerateLoraConfig(lora config.LoraConfig) (LoraConfig, error) {
 
 	// Return the bot.LoraConfig with only the defined fields
 	return LoraConfig{
-		ID:          id, // Use sanitized and truncated ID
-		Name:        lora.Name,
-		URL:         lora.URL,         // Field exists in config.LoraConfig
-		Weight:      lora.Weight,      // Field exists in config.LoraConfig
-		AllowGroups: lora.AllowGroups, // Field exists in config.LoraConfig
+		ID:           id, // Use sanitized and truncated ID
+		Name:         lora.Name,
+		URL:          lora.URL,         // Field exists in config.LoraConfig
+		Weight:       lora.Weight,      // Field exists in config.LoraConfig
+		AllowGroups:  lora.AllowGroups, // Field exists in config.LoraConfig
+		AppendPrompt: lora.AppendPrompt,
 		// BaseLoraOnly seems to be missing from config.LoraConfig, remove if necessary
 		// BaseLoraOnly: lora.BaseLoraOnly, // Assuming this exists, otherwise remove
 	}, nil

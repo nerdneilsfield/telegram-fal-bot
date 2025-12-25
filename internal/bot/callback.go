@@ -768,10 +768,10 @@ func HandleConfigUpdateInput(message *tgbotapi.Message, state *UserState, deps B
 
 	case "awaiting_config_guidscale":
 		scale, err := strconv.ParseFloat(inputText, 64)
-		if err != nil || scale <= 0 || scale > 15 {
+		if err != nil || scale < 0 || scale > 15 {
 			// More specific error, ask user to retry
 			userLang := getUserLanguagePreference(userID, deps)
-			deps.Bot.Send(tgbotapi.NewMessage(chatID, deps.I18n.T(userLang, "config_invalid_input_float_range", "min", 0.1, "max", 15.0)))
+			deps.Bot.Send(tgbotapi.NewMessage(chatID, deps.I18n.T(userLang, "config_invalid_input_float_range", "min", 0.0, "max", 15.0)))
 			// deps.Bot.Send(tgbotapi.NewMessage(chatID, "⚠️ 无效输入。请输入 0 到 15 之间的数字 (例如 7.5)。"))
 			return // Don't clear state
 		}
