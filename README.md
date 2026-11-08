@@ -49,6 +49,19 @@ A Telegram bot integrated with the Fal AI API to provide AI-powered features lik
 * `/myconfig`: Allows users to view and modify their personal generation settings (Image Size, Inference Steps, Guidance Scale, Number of Images, Language) via an interactive menu. These settings override the global defaults.
 * `/set`: (Admin Only) Placeholder for future administrator commands (e.g., managing users, balances, or bot settings). Currently under development.
 
+## Homebrew / Scoop
+
+```bash
+# macOS / Linux
+brew install --cask nerdneilsfield/apps/telegram-fal-bot
+```
+
+```powershell
+# Windows
+scoop bucket add nerdneilsfield https://github.com/nerdneilsfield/homebrew-apps
+scoop install nerdneilsfield/telegram-fal-bot
+```
+
 ## Getting Started
 
 1. **Prerequisites:**
