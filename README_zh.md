@@ -50,6 +50,19 @@
 * `/myconfig`: 允许用户通过交互式菜单查看和修改其个人生成设置（图像尺寸、推理步数、引导比例、图像数量、语言）。这些设置会覆盖全局默认值。
 * `/set`: (仅管理员) 用于未来管理员命令的占位符（例如管理用户、余额或机器人设置）。目前正在开发中。
 
+## 通过 Homebrew / Scoop 安装
+
+```bash
+# macOS / Linux
+brew install --cask nerdneilsfield/apps/telegram-fal-bot
+```
+
+```powershell
+# Windows
+scoop bucket add nerdneilsfield https://github.com/nerdneilsfield/homebrew-apps
+scoop install nerdneilsfield/telegram-fal-bot
+```
+
 ## 开始使用
 
 1. **先决条件:**
